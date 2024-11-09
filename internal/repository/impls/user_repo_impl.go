@@ -26,3 +26,13 @@ func (u *UserRepositoryImpl) CreateUser(ctx context.Context, user *model.User) (
 	user.Id = newUser.InsertedID.(primitive.ObjectID).Hex()
 	return user, nil
 }
+
+func (u *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	collection := u.db.Collection("users")
+	var user model.User
+	err := collection.FindOne(ctx, model.User{Email: email}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
