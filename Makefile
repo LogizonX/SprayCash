@@ -1,5 +1,4 @@
-build:
-	@go build -o ./bin/app
+.PHONY: run
 
-run: build
-	@./bin/app
+run:
+	@air
