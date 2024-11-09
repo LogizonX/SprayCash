@@ -31,6 +31,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	// need to hash the password
 	hashedPassword, hashErr := auth.HashPassword(createUserDto.Password)
 	if hashErr != nil {
+		log.Println("Error hashing password: ", hashErr)
 		return "", hashErr
 	}
 	// check if user already exists
@@ -38,6 +39,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	defer cancel()
 	_, existErr := s.repo.GetUserByEmail(ctx, createUserDto.Email)
 	if existErr == nil {
+		log.Println("User already exists: ", existErr)
 		return "", errors.New("user already exists")
 	}
 
@@ -46,6 +48,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	// Call the CreateUser function with the context
 	_, err := s.repo.CreateUser(ctx, newUser)
 	if err != nil {
+		log.Println("Error creating user: ", err)
 		if errors.Is(err, context.DeadlineExceeded) {
 			return "", errors.New("request timed out")
 		}

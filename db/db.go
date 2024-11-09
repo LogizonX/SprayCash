@@ -22,11 +22,6 @@ func ConnectDb(ctx context.Context, dbUrl string) (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			panic(err)
-		}
-	}()
 
 	// ping database
 	if err = client.Database("admin").RunCommand(ctx, map[string]interface{}{"ping": 1}).Err(); err != nil {
