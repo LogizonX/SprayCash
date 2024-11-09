@@ -5,7 +5,7 @@ func Response(statusCode int, data any, message any) map[string]any {
 	switch {
 	case statusCode >= 200 && statusCode <= 299:
 		status = "success"
-	case statusCode == 40:
+	case statusCode == 400:
 		status = "error"
 	case statusCode >= 300 && statusCode <= 399:
 		status = "redirect"

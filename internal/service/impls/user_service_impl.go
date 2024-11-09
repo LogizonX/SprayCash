@@ -3,6 +3,7 @@ package impls
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -63,6 +64,7 @@ func (s *UserServiceImpl) Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, er
 	defer cancel()
 	// get user by the email
 	user, err := s.repo.GetUserByEmail(ctx, loginDto.Email)
+	fmt.Println(loginDto.Email)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return dto.LoginResponseDTO{}, errors.New("request timed out")

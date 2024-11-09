@@ -20,7 +20,8 @@ func NewUserController(userService service.UserService) *UserController {
 }
 
 func (uc *UserController) RegisterRoutes(rg *gin.RouterGroup) {
-	rg.POST("/register", uc.Register)
+	rg.POST("/auth/register", uc.Register)
+	rg.POST("/auth/login", uc.Login)
 }
 
 func (uc *UserController) Register(c *gin.Context) {
@@ -51,4 +52,33 @@ func (uc *UserController) Register(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, utils.Response(http.StatusCreated, nil, resp))
+}
+
+func (us *UserController) Login(c *gin.Context) {
+	var pl dto.LoginDTO
+
+	if err := c.ShouldBindJSON(&pl); err != nil {
+		// log the error
+		log.Println(err)
+		c.JSON(400, utils.Response(http.StatusBadRequest, nil, err.Error()))
+		return
+	}
+	// send to service
+	resp, rErr := us.userService.Login(pl)
+	if rErr != nil {
+		// log the error
+		log.Println("this is the error: ", rErr)
+		// check for the possible errors
+		if rErr.Error() == "invalid credentials" {
+			c.JSON(http.StatusBadRequest, utils.Response(http.StatusBadRequest, nil, rErr.Error()))
+			return
+		}
+		if rErr.Error() == "request timed out" {
+			c.JSON(408, utils.Response(http.StatusRequestTimeout, nil, rErr.Error()))
+			return
+		}
+		c.JSON(500, utils.Response(http.StatusInternalServerError, nil, rErr.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Response(http.StatusOK, resp, "Login Successful"))
 }

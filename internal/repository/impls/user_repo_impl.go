@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/LoginX/SprayDash/internal/model"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -30,7 +31,8 @@ func (u *UserRepositoryImpl) CreateUser(ctx context.Context, user *model.User) (
 func (u *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
 	collection := u.db.Collection("users")
 	var user model.User
-	err := collection.FindOne(ctx, model.User{Email: email}).Decode(&user)
+	filter := bson.M{"email": email}
+	err := collection.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
