@@ -69,6 +69,7 @@ func (s *UserServiceImpl) Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, er
 		if errors.Is(err, context.DeadlineExceeded) {
 			return dto.LoginResponseDTO{}, errors.New("request timed out")
 		}
+		// TODO: handle case of user does not exists
 		return dto.LoginResponseDTO{}, err
 	}
 	// compare password

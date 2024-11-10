@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/LoginX/SprayDash/internal/model"
@@ -24,7 +25,7 @@ func CreateJWT(secret []byte, expiration int, user *model.User) (map[string]stri
 	}
 	data := map[string]string{
 		"token":     tokenString,
-		"expiresAt": time.Unix(expAt, 0).String(),
+		"expiresAt": strconv.FormatInt(expAt, 10),
 	}
 	return data, nil
 }
