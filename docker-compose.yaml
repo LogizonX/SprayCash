@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  spraydash:
+    container_name: spraydash-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:8080"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: ./api
