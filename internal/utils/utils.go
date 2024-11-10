@@ -2,8 +2,11 @@ package utils
 
 import (
 	"errors"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -72,4 +75,12 @@ func GetUserFromContext(c *gin.Context) (any, error) {
 func Forbidden(c *gin.Context) {
 	c.JSON(http.StatusForbidden, Response(http.StatusForbidden, nil, "Unauthorized"))
 	c.Abort()
+}
+
+func GenerateInviteCode() string {
+	// use string and timestamp to generate randon invite code
+	rand.Seed(time.Now().UnixNano())
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	ranNumber := rand.Intn(10000)
+	return timestamp + strconv.Itoa(ranNumber)
 }
