@@ -15,6 +15,9 @@ func NewRootController() *RootController {
 
 func (rc *RootController) RegisterRoutes(rg *gin.Engine) {
 	rg.GET("/", rc.Home)
+	rg.NoRoute(func(ctx *gin.Context) {
+		ctx.JSON(http.StatusNotFound, utils.Response(http.StatusNotFound, nil, "Route not found"))
+	})
 }
 
 func (rc *RootController) Home(ctx *gin.Context) {
