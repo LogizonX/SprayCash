@@ -28,11 +28,15 @@ func (a *APIServer) Start() error {
 	mongoDb := a.dbClient.Database("spraydash")
 	// repo
 	userRepo := repo.NewUserRepositoryImpl(mongoDb)
+	partyRepo := repo.NewPartyRepoImpl(mongoDb)
 	// service
 	userService := service.NewUserServiceImpl(userRepo)
+	partyService := service.NewPartyServiceImpl(partyRepo)
 	// controller
 	userController := controller.NewUserController(userService)
+	partyController := controller.NewPartyController(partyService)
 	userController.RegisterRoutes(v1)
+	partyController.RegisterPartyRoutes(v1)
 
 	return router.Run(a.listenAddr)
 }

@@ -81,6 +81,6 @@ func GenerateInviteCode() string {
 	// use string and timestamp to generate randon invite code
 	rand.Seed(time.Now().UnixNano())
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	ranNumber := rand.Intn(10000)
+	ranNumber := rand.Intn(100)
 	return timestamp + strconv.Itoa(ranNumber)
 }

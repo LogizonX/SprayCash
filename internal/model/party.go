@@ -1,6 +1,10 @@
 package model
 
-import "github.com/LoginX/SprayDash/internal/utils"
+import (
+	"strings"
+
+	"github.com/LoginX/SprayDash/internal/utils"
+)
 
 type Party struct {
 	Id         string `bson:"_id,omitempty" json:"id"`
@@ -16,7 +20,7 @@ type PartyGuest struct {
 }
 
 func NewParty(name string, tag string, hostEmail string) *Party {
-	inviteCode := name + "-" + utils.GenerateInviteCode()
+	inviteCode := strings.ReplaceAll(name, " ", "-") + "-" + utils.GenerateInviteCode()
 	return &Party{
 		Name:       name,
 		Tag:        tag,
