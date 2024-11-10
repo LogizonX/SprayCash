@@ -10,4 +10,5 @@ type UserService interface {
 	Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, error)
 	Register(createUserDto dto.CreateUserDTO) (string, error)
 	GetUserDetails(email string) (*model.User, error)
+	LoginSocial(loginDto dto.LoginSocialDTO) (dto.LoginResponseDTO, error)
 }

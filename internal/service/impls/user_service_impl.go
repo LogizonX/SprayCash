@@ -100,3 +100,46 @@ func (s *UserServiceImpl) GetUserDetails(email string) (*model.User, error) {
 	defer cancel()
 	return s.repo.GetUserByEmail(ctx, email)
 }
+
+func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseDTO, error) {
+	email := pl.Email
+	// get user by the email
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	// user does not exists create one
+	if err != nil {
+		// create user
+		hashedPassword, hashErr := auth.HashPassword(pl.Email)
+		if hashErr != nil {
+			log.Println("Error hashing password: ", hashErr)
+			return dto.LoginResponseDTO{}, hashErr
+		}
+		newUser := model.NewUser(pl.Name, pl.Email, hashedPassword)
+		_, err := s.repo.CreateUser(ctx, newUser)
+		if err != nil {
+			log.Println("Error creating user: ", err)
+			if errors.Is(err, context.DeadlineExceeded) {
+				return dto.LoginResponseDTO{}, errors.New("request timed out")
+			}
+			return dto.LoginResponseDTO{}, err
+		}
+	}
+	secret := []byte(config.GetEnv("JWT_SECRET", "somesecret"))
+	exp, expErr := strconv.Atoi(config.GetEnv("JWT_EXP", "3600"))
+	if expErr != nil {
+		log.Println("Error converting JWT_EXP to int: ", expErr)
+		return dto.LoginResponseDTO{}, expErr
+	}
+	token, tokenErr := auth.CreateJWT(secret, exp, user)
+	if tokenErr != nil {
+		log.Println("Error creating JWT: ", tokenErr)
+		return dto.LoginResponseDTO{}, errors.New("error creating a token")
+	}
+	return dto.LoginResponseDTO{
+		AccessToken: token["token"],
+		ExpiresIn:   token["expiresAt"],
+		TokenType:   "jwt",
+	}, nil
+
+}
