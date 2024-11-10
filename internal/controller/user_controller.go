@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/LoginX/SprayDash/internal/middleware"
 	"github.com/LoginX/SprayDash/internal/service"
 	"github.com/LoginX/SprayDash/internal/service/dto"
 	"github.com/LoginX/SprayDash/internal/utils"
@@ -22,6 +23,7 @@ func NewUserController(userService service.UserService) *UserController {
 func (uc *UserController) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/auth/register", uc.Register)
 	rg.POST("/auth/login", uc.Login)
+	rg.GET("/users", middleware.AuthMiddleware(uc.userService), uc.FetchUserDetails)
 }
 
 func (uc *UserController) Register(c *gin.Context) {
@@ -81,4 +83,16 @@ func (us *UserController) Login(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, utils.Response(http.StatusOK, resp, "Login Successful"))
+}
+
+// FetchUserDetails from the authmiddleware
+func (uc *UserController) FetchUserDetails(c *gin.Context) {
+	// fetch the user details from the context
+	user, err := utils.GetUserFromContext(c)
+	if err != nil {
+		log.Println("this is the error: ", err)
+		c.JSON(404, utils.Response(404, nil, "user not found"))
+	}
+	c.JSON(200, utils.Response(200, user, "User details fetched successfully"))
+
 }

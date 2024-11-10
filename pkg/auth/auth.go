@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log"
 	"strconv"
 	"time"
 
@@ -10,14 +11,15 @@ import (
 
 type contextKey string
 
-var UserKey contextKey = "user"
+var UserKey contextKey = "userEmail"
 
 func CreateJWT(secret []byte, expiration int, user *model.User) (map[string]string, error) {
-	expAt := time.Now().Add(time.Duration(expiration) * time.Minute).Unix()
+	expAt := time.Now().Add(time.Duration(expiration) * time.Second).Unix()
+	log.Println("expAt: ", expAt)
 	// create te token claim
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user": user,
-		"exp":  expAt,
+		"userEmail": user.Email,
+		"exp":       expAt,
 	})
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
