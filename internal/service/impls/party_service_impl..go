@@ -31,3 +31,14 @@ func (ps *PartyServiceImpl) CreateParty(createPartyDto dto.CreatePartyDTO) (*mod
 	return createdParty, nil
 
 }
+
+func (ps *PartyServiceImpl) JoinParty(inviteCode string) (*model.Party, error) {
+	// get the party by the invite code
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	party, err := ps.repo.GetPartyByInviteCode(ctx, inviteCode)
+	if err != nil {
+		return nil, err
+	}
+	return party, nil
+}

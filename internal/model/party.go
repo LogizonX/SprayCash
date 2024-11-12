@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/LoginX/SprayDash/internal/utils"
@@ -41,12 +42,16 @@ func (p *Party) GetRanking() []*GuestsData {
 
 // leave party
 func (p *Party) LeaveParty(userId string) {
+	guest := p.Guests[userId]
 	delete(p.Guests, userId)
+	go p.BroadcastMessage(NewMessage(p.Id, fmt.Sprintf("%s has left the party", guest.Username), guest.Username, guest.UserId))
 }
 
 // join party
 func (p *Party) JoinParty(guest *PartyGuest) {
 	p.Guests[guest.UserId] = guest
+	// broadcast a new user joining the party
+	go p.BroadcastMessage(NewMessage(p.Id, fmt.Sprintf("%s has joined the party", guest.Username), guest.Username, guest.UserId))
 }
 
 // read message from client
@@ -81,9 +86,10 @@ func NewGuestData(partyId string, userId string, username string, totalSpent int
 }
 
 type MessageData struct {
-	ReceiverId string `json:"receiverId"`
-	SenderId   string `json:"senderId"`
-	Amount     int64  `json:"amount"`
+	ReceiverId   string `json:"receiverId"`
+	ReceiverName string `json:"receiverName`
+	SenderId     string `json:"senderId"`
+	Amount       int64  `json:"amount"`
 }
 
 type Message struct {

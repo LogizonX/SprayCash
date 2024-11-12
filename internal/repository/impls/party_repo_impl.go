@@ -30,3 +30,13 @@ func (p *PartyRepoImpl) CreateParty(ctx context.Context, party *model.Party) (*m
 	return party, nil
 
 }
+
+func (p *PartyRepoImpl) GetPartyByInviteCode(ctx context.Context, inviteCode string) (*model.Party, error) {
+	collection := p.db.Collection("party")
+	var party model.Party
+	err := collection.FindOne(ctx, primitive.M{"inviteCode": inviteCode}).Decode(&party)
+	if err != nil {
+		return nil, err
+	}
+	return &party, nil
+}
