@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/LoginX/SprayDash/internal/middleware"
 	"github.com/LoginX/SprayDash/internal/model"
 	"github.com/LoginX/SprayDash/internal/service"
 	"github.com/LoginX/SprayDash/internal/service/dto"
@@ -15,18 +16,22 @@ import (
 
 type PartyController struct {
 	partyService service.PartyService
+	userService  service.UserService
 }
 
-func NewPartyController(partyService service.PartyService) PartyController {
+func NewPartyController(partyService service.PartyService, userService service.UserService) PartyController {
 	return PartyController{
 		partyService: partyService,
+		userService:  userService,
 	}
 }
 
 func (ps *PartyController) RegisterPartyRoutes(rg *gin.RouterGroup) {
 	partyRoutes := rg.Group("/parties")
+	ws := rg.Group("/ws")
 	{
 		partyRoutes.POST("/create", ps.CreateParty)
+		ws.GET("/joinParty", middleware.AuthMiddleware(ps.userService), ps.JoinParty)
 	}
 }
 
@@ -58,6 +63,7 @@ var upgrader = websocket.Upgrader{
 func (ps *PartyController) JoinParty(c *gin.Context) {
 	// get user from the context
 	user, uErr := utils.GetUserFromContext(c)
+	parsedUser := user.(*model.User)
 	if uErr != nil {
 		log.Println(uErr)
 		c.JSON(http.StatusUnauthorized, utils.Response(http.StatusUnauthorized, nil, "Unauthorized"))
@@ -76,7 +82,7 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 		log.Println("failed to upgrade connection: ", cErr)
 		return
 	}
-	partyGuest := model.NewPartyGuest(party.Id, user.Email, conn, user.Id)
+	partyGuest := model.NewPartyGuest(party.Id, parsedUser.Email, conn, parsedUser.Id)
 	party.JoinParty(partyGuest)
 	// listen for message in a goroutine
 	go func() {
@@ -92,8 +98,10 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 				break
 			}
 			// broadcast the message to all guests in the party
-			message := fmt.Sprintf("%s")
-			party.BroadcastMessage(message)
+			message := fmt.Sprintf("%s sends %d to %s", messageData.SenderIdName, messageData.Amount, messageData.ReceiverName)
+			log.Println("message: ", message)
+			bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
+			party.BroadcastMessage(bMessage)
 		}
 	}()
 

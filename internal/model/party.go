@@ -87,8 +87,9 @@ func NewGuestData(partyId string, userId string, username string, totalSpent int
 
 type MessageData struct {
 	ReceiverId   string `json:"receiverId"`
-	ReceiverName string `json:"receiverName`
+	ReceiverName string `json:"receiverName"`
 	SenderId     string `json:"senderId"`
+	SenderIdName string `json:"senderIdName"`
 	Amount       int64  `json:"amount"`
 }
 

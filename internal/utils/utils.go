@@ -63,22 +63,20 @@ func GetTokenFromRequest(c *gin.Context) (string, error) {
 	return accessToken, nil
 }
 
-func GetUserFromContext(c *gin.Context) (*UserResponse, error) {
+func GetUserFromContext(c *gin.Context) (any, error) {
 	user, exists := c.Get("user")
 	if !exists {
 		return nil, errors.New("user not found")
 	}
 
-	newUser := user.(map[string]any)
+	// userResponse := &UserResponse{
+	// 	Id:            newUser["id"].(string),
+	// 	Name:          newUser["username"].(string),
+	// 	Email:         newUser["email"].(string),
+	// 	WalletBalance: newUser["wallet_balance"].(float64),
+	// }
 
-	userResponse := &UserResponse{
-		Id:            newUser["id"].(string),
-		Name:          newUser["username"].(string),
-		Email:         newUser["email"].(string),
-		WalletBalance: newUser["wallet_balance"].(float64),
-	}
-
-	return userResponse, nil
+	return user, nil
 }
 
 func Forbidden(c *gin.Context) {

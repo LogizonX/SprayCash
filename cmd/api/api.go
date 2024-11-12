@@ -34,7 +34,7 @@ func (a *APIServer) Start() error {
 	partyService := service.NewPartyServiceImpl(partyRepo)
 	// controller
 	userController := controller.NewUserController(userService)
-	partyController := controller.NewPartyController(partyService)
+	partyController := controller.NewPartyController(partyService, userService)
 	userController.RegisterRoutes(v1)
 	partyController.RegisterPartyRoutes(v1)
 
