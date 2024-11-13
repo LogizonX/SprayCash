@@ -2,8 +2,11 @@ package utils
 
 import (
 	"errors"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,10 +69,25 @@ func GetUserFromContext(c *gin.Context) (any, error) {
 		return nil, errors.New("user not found")
 	}
 
+	// userResponse := &UserResponse{
+	// 	Id:            newUser["id"].(string),
+	// 	Name:          newUser["username"].(string),
+	// 	Email:         newUser["email"].(string),
+	// 	WalletBalance: newUser["wallet_balance"].(float64),
+	// }
+
 	return user, nil
 }
 
 func Forbidden(c *gin.Context) {
 	c.JSON(http.StatusForbidden, Response(http.StatusForbidden, nil, "Unauthorized"))
 	c.Abort()
+}
+
+func GenerateInviteCode() string {
+	// use string and timestamp to generate randon invite code
+	rand.Seed(time.Now().UnixNano())
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	ranNumber := rand.Intn(100)
+	return timestamp + strconv.Itoa(ranNumber)
 }
