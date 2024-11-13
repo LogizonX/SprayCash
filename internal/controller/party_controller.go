@@ -97,6 +97,7 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 				log.Println("failed to read message: ", err)
 				break
 			}
+			// send disbursement to rabbit queue
 			// broadcast the message to all guests in the party
 			message := fmt.Sprintf("%s sends %d to %s", messageData.SenderIdName, messageData.Amount, messageData.ReceiverName)
 			log.Println("message: ", message)
