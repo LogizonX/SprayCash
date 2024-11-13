@@ -91,3 +91,14 @@ func GenerateInviteCode() string {
 	ranNumber := rand.Intn(100)
 	return timestamp + strconv.Itoa(ranNumber)
 }
+
+func GenerateReferenceCode() string {
+	// generate randm aplhanumeric code
+	rand.Seed(time.Now().UnixNano())
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}

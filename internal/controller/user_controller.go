@@ -122,3 +122,7 @@ func (uc *UserController) LoginSocial(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Response(http.StatusOK, resp, "Login Successful"))
 }
+
+func (uc *UserController) GenerateDynamicAccount(c *gin.Context) {
+
+}

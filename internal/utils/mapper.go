@@ -15,3 +15,16 @@ func NewUserResponse(id string, name string, email string, wallet_balance float6
 		WalletBalance: wallet_balance,
 	}
 }
+
+type ResponseContent struct {
+	VirtualAccountName      string `json:"virtual_account_name"`
+	VirtualProviderBankName string `json:"virtual_provider_bank_name"`
+	VirtualProviderBankCode string `json:"virtual_provider_bank_code"`
+	VirtualAccountNumber    string `json:"virtual_account_number"`
+}
+
+type ResponseBody struct {
+	ResponseContent ResponseContent `json:"response_content"`
+	ResponseCode    int             `json:"response_code"`
+	ResponseMessage string          `json:"response_message"`
+}

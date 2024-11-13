@@ -2,6 +2,7 @@ package impls
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/LoginX/SprayDash/internal/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -44,7 +45,7 @@ func (u *UserRepositoryImpl) CreditUser(ctx context.Context, amount float64, use
 	collection := u.db.Collection("users")
 	filter := bson.M{"_id": userId}
 	update := bson.M{"$inc": bson.M{"wallet_balance": amount}}
-	_, err := collection.UpdateOne(context.Background(), filter, update)
+	_, err := collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
@@ -53,6 +54,23 @@ func (u *UserRepositoryImpl) DebitUser(ctx context.Context, amount float64, user
 	collection := u.db.Collection("users")
 	filter := bson.M{"_id": userId}
 	update := bson.M{"$inc": bson.M{"wallet_balance": -amount}}
-	_, err := collection.UpdateOne(context.Background(), filter, update)
+	_, err := collection.UpdateOne(ctx, filter, update)
 	return err
+}
+
+func (u *UserRepositoryImpl) UpdateUserBankDetails(ctx context.Context, userEmail string, accountDetails *model.AccountDetails) error {
+	fmt.Println("Updating bank details: ", userEmail)
+	collection := u.db.Collection("users")
+	filter := bson.M{"email": userEmail}
+	update := bson.M{"$set": bson.M{"account_details": accountDetails}}
+	updatedResult, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		fmt.Println("Error updating bank details:", err)
+		return err
+	}
+	if updatedResult.MatchedCount == 0 {
+		fmt.Println("No user found with the provided ID.")
+		return fmt.Errorf("no user found with the provided ID")
+	}
+	return nil
 }
