@@ -4,7 +4,9 @@
 name: Build and deploy container app to Azure Web App - spraydash
 
 on:
-  push:
+  pull_request:
+    types:
+      - merged
     branches:
       - master
   workflow_dispatch:
@@ -30,7 +32,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: ayocontainerazure.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_ae6c4ae3c0414b5496e96d09852a13e9 }}/spraycash-app:${{ github.sha }}
+        tags: ayocontainerazure.azurecr.io/spraycash-app:latest
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +50,4 @@ jobs:
         app-name: 'spraydash'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_a2c742e39b7849f08cbd4a33dab3001c }}
-        images: 'ayocontainerazure.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_ae6c4ae3c0414b5496e96d09852a13e9 }}/spraycash-app:${{ github.sha }}'
+        images: 'ayocontainerazure.azurecr.io/spraycash-app:latest'
