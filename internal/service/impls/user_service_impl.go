@@ -1,24 +1,19 @@
 package impls
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/LoginX/SprayDash/config"
 	"github.com/LoginX/SprayDash/internal/model"
 	"github.com/LoginX/SprayDash/internal/repository"
 	"github.com/LoginX/SprayDash/internal/service/dto"
-	"github.com/LoginX/SprayDash/internal/utils"
 	"github.com/LoginX/SprayDash/pkg/auth"
+	"github.com/LoginX/SprayDash/pkg/common"
 )
 
 type UserServiceImpl struct {
@@ -30,6 +25,24 @@ func NewUserServiceImpl(repo repository.UserRepository) *UserServiceImpl {
 	return &UserServiceImpl{
 		repo: repo,
 	}
+}
+
+func (s *UserServiceImpl) generateVirtualAccount(user *model.User) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	responseBody, err := common.GeneratePayazaVirtualAccount(user)
+	if err != nil {
+		fmt.Println("Error generating virtual account:", err)
+		return
+	}
+	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
+	// update bankdetails
+	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
+	if err != nil {
+		fmt.Println("Error updating bank details:", err)
+		return
+	}
+
 }
 
 // implement interface methods
@@ -62,69 +75,24 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 		return "", err
 	}
 	// get the bank details in a goroutine
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		url := "https://router.prod.payaza.africa/api/request/secure/payloadhandler"
-		userFirstName := strings.Fields(user.Name)[0]
-		userLastName := strings.Fields(user.Name)[1]
-		payload := map[string]interface{}{
-			"service_type": "Account",
-			"service_payload": map[string]interface{}{
-				"request_application":      "Payaza",
-				"application_module":       "USER_MODULE",
-				"application_version":      "1.0.0",
-				"request_class":            "CreateReservedAccountForCustomers",
-				"customer_first_name":      userFirstName,
-				"customer_last_name":       userLastName,
-				"customer_email":           user.Email,
-				"customer_phone":           "09012345673",
-				"virtual_account_provider": "Premiumtrust",
-			},
-		}
-		jsonData, err := json.Marshal(payload)
-		if err != nil {
-			fmt.Println("Error marshalling JSON:", err)
-			return
-		}
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-		if err != nil {
-			fmt.Println("Error creating request:", err)
-			return
-		}
-		req.Header.Set("Authorization", "Payaza UFo3OC1QS1RFU1QtMjM5NTNCMUUtQ0RGQS00OTFCLUIxMEMtN0IzRjEyMzlBRjI5")
-		req.Header.Set("Content-Type", "application/json")
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			fmt.Println("Error sending request:", err)
-			return
-		}
-		defer resp.Body.Close()
-		print(resp.Body)
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("Error reading response body:", err)
-			return
-		}
-		respBody := []byte(string(body))
-		var responseBody utils.ResponseBody
-		jErr := json.Unmarshal(respBody, &responseBody)
-		if jErr != nil {
-			fmt.Println("Error unmarshalling JSON:", jErr)
-			return
-		}
-		accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
-		// update bankdetails
-		err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
-		if err != nil {
-			fmt.Println("Error updating bank details:", err)
-			return
-		}
-		fmt.Println("Response:", resp.Status)
-		fmt.Println("Response Body:", string(body))
+	go s.generateVirtualAccount(user)
+	// go func() {
+	// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// 	defer cancel()
+	// 	responseBody, err := utils.GeneratePayazaVirtualAccount(user)
+	// 	if err != nil {
+	// 		fmt.Println("Error generating virtual account:", err)
+	// 		return
+	// 	}
+	// 	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
+	// 	// update bankdetails
+	// 	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
+	// 	if err != nil {
+	// 		fmt.Println("Error updating bank details:", err)
+	// 		return
+	// 	}
 
-	}()
+	// }()
 	return "User registered successfully", nil
 
 }
@@ -156,6 +124,25 @@ func (s *UserServiceImpl) Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, er
 	if tokenErr != nil {
 		log.Println("Error creating JWT: ", tokenErr)
 		return dto.LoginResponseDTO{}, errors.New("error creating a token")
+	}
+	if user.AccountDetails.AccountNo == "" {
+		go s.generateVirtualAccount(user)
+		// go func() {
+		// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		// 	defer cancel()
+		// 	responseBody, err := utils.GeneratePayazaVirtualAccount(user)
+		// 	if err != nil {
+		// 		fmt.Println("Error generating virtual account:", err)
+		// 		return
+		// 	}
+		// 	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
+		// 	// update bankdetails
+		// 	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
+		// 	if err != nil {
+		// 		fmt.Println("Error updating bank details:", err)
+		// 		return
+		// 	}
+		// }()
 	}
 	// return token
 	return dto.LoginResponseDTO{
@@ -206,6 +193,9 @@ func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseD
 	if tokenErr != nil {
 		log.Println("Error creating JWT: ", tokenErr)
 		return dto.LoginResponseDTO{}, errors.New("error creating a token")
+	}
+	if user.AccountDetails.AccountNo == "" {
+		go s.generateVirtualAccount(user)
 	}
 	return dto.LoginResponseDTO{
 		AccessToken: token["token"],
