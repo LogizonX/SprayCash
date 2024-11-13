@@ -38,3 +38,21 @@ func (u *UserRepositoryImpl) GetUserByEmail(ctx context.Context, email string) (
 	}
 	return &user, nil
 }
+
+func (u *UserRepositoryImpl) CreditUser(ctx context.Context, amount float64, userId string) error {
+	//  update user credit
+	collection := u.db.Collection("users")
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$inc": bson.M{"wallet_balance": amount}}
+	_, err := collection.UpdateOne(context.Background(), filter, update)
+	return err
+}
+
+func (u *UserRepositoryImpl) DebitUser(ctx context.Context, amount float64, userId string) error {
+	//  update user credit
+	collection := u.db.Collection("users")
+	filter := bson.M{"_id": userId}
+	update := bson.M{"$inc": bson.M{"wallet_balance": -amount}}
+	_, err := collection.UpdateOne(context.Background(), filter, update)
+	return err
+}
