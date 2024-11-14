@@ -76,23 +76,8 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	}
 	// get the bank details in a goroutine
 	go s.generateVirtualAccount(user)
-	// go func() {
-	// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// 	defer cancel()
-	// 	responseBody, err := utils.GeneratePayazaVirtualAccount(user)
-	// 	if err != nil {
-	// 		fmt.Println("Error generating virtual account:", err)
-	// 		return
-	// 	}
-	// 	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
-	// 	// update bankdetails
-	// 	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
-	// 	if err != nil {
-	// 		fmt.Println("Error updating bank details:", err)
-	// 		return
-	// 	}
+	// send a welcome email
 
-	// }()
 	return "User registered successfully", nil
 
 }
@@ -127,22 +112,6 @@ func (s *UserServiceImpl) Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, er
 	}
 	if user.AccountDetails.AccountNo == "" {
 		go s.generateVirtualAccount(user)
-		// go func() {
-		// 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		// 	defer cancel()
-		// 	responseBody, err := utils.GeneratePayazaVirtualAccount(user)
-		// 	if err != nil {
-		// 		fmt.Println("Error generating virtual account:", err)
-		// 		return
-		// 	}
-		// 	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
-		// 	// update bankdetails
-		// 	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
-		// 	if err != nil {
-		// 		fmt.Println("Error updating bank details:", err)
-		// 		return
-		// 	}
-		// }()
 	}
 	// return token
 	return dto.LoginResponseDTO{
