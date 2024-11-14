@@ -2,9 +2,12 @@ package impls
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -180,5 +183,67 @@ func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseD
 		ExpiresIn:   token["expiresAt"],
 		TokenType:   "jwt",
 	}, nil
+
+}
+
+func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
+	// get the user by the email
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// get the transaction reference and query transaction status
+	tranRef := pl.TransactionReference
+	url := fmt.Sprintf("https://api.payaza.africa/live/payaza-account/api/v1/mainaccounts/merchant/transaction/%s", tranRef)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Println("Error creating request:", err)
+		return "", err
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Payaza %s", config.GetEnv("PAYAZA_API_KEY", "somkey")))
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error sending request:", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+	res, rErr := ioutil.ReadAll(resp.Body)
+	if rErr != nil {
+		log.Println("Error reading response body:", rErr)
+		return "", rErr
+	}
+	// convert the response to a byte runes
+	resBytes := []byte(string(res))
+	responseBody := new(dto.TransactionResponse)
+	// unmarshal the response
+	err = json.Unmarshal(resBytes, responseBody)
+	if err != nil {
+		log.Println("Error unmarshalling response:", err)
+		return "", err
+	}
+	// check the status of the transaction
+	if responseBody.Data.TransactionStatus == "NIP_SUCCESS" && responseBody.Status == true {
+		// get user by the virtual account number
+		virtualAccountNumber := pl.VirtualAccountNumber
+		user, err := s.repo.GetUserByVirtualAccount(ctx, virtualAccountNumber)
+		if err != nil {
+			log.Println("Error getting user by virtual account:", err)
+			return "", err
+		}
+
+		newWalletHistory := model.NewWalletHistory(user.Email, float64(responseBody.Data.TransactionAmount), user.WalletBalance, user.WalletBalance+float64(responseBody.Data.TransactionAmount), responseBody.Data.TransactionReference)
+
+		// credit the user account
+		creditErr := s.repo.CreditUser(ctx, float64(responseBody.Data.TransactionAmount), user.Email, newWalletHistory)
+		if creditErr != nil {
+			log.Println("Error crediting user account:", creditErr)
+			return "", creditErr
+		}
+		// send a mail to the user
+		// TODO: change email template for this
+		go utils.SendMail(user.Email, "Fund Successful", user.Name, "Your transaction was successful")
+		return "success", nil
+	}
+	return "failed", errors.New("transaction failed")
 
 }

@@ -11,4 +11,5 @@ type UserService interface {
 	Register(createUserDto dto.CreateUserDTO) (string, error)
 	GetUserDetails(email string) (*model.User, error)
 	LoginSocial(loginDto dto.LoginSocialDTO) (dto.LoginResponseDTO, error)
+	PayazaWebhook(pl *dto.Transaction) (string, error)
 }
