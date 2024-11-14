@@ -84,7 +84,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	} else {
 
 		// send email
-		go utils.SendMail(user.Email, "Welcome to SprayDash", fmt.Sprintf("Your verification code is %d", code), user.Name)
+		go utils.SendMail(user.Email, "Welcome to SprayDash", user.Name, fmt.Sprintf("%s", code))
 	}
 
 	return "User registered successfully", nil
