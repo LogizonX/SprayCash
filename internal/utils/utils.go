@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"html/template"
@@ -24,8 +25,10 @@ var rdb *redis.Client
 
 func init() {
 	rdb = redis.NewClient(&redis.Options{
-		Addr: config.GetEnv("REDIS_URL", "localhost:6379"),
-		DB:   0,
+		Addr:      config.GetEnv("REDIS_URL", "localhost:6379"),
+		DB:        0,
+		Password:  config.GetEnv("REDIS_ACCESS", ""),
+		TLSConfig: &tls.Config{},
 	})
 
 }
@@ -141,7 +144,7 @@ func GenerateReferenceCode() string {
 
 func SendMail(recipient string, subject string, username string, message string) error {
 	// get the template
-	templ, err := os.ReadFile("internal/templates/email_template.html")
+	templ, err := os.ReadFile("internal/utils/templates/email_template.html")
 	if err != nil {
 		log.Println("Error reading email template:", err)
 		return err
@@ -153,8 +156,8 @@ func SendMail(recipient string, subject string, username string, message string)
 	}
 	// mail data
 	mailData := map[string]interface{}{
-		"username": username,
-		"message":  message,
+		"Username": username,
+		"Message":  message,
 	}
 	// write the maildata to bytes buffer
 	buf := new(bytes.Buffer)

@@ -12,6 +12,7 @@ import (
 	"github.com/LoginX/SprayDash/internal/model"
 	"github.com/LoginX/SprayDash/internal/repository"
 	"github.com/LoginX/SprayDash/internal/service/dto"
+	"github.com/LoginX/SprayDash/internal/utils"
 	"github.com/LoginX/SprayDash/pkg/auth"
 	"github.com/LoginX/SprayDash/pkg/common"
 )
@@ -77,6 +78,14 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	// get the bank details in a goroutine
 	go s.generateVirtualAccount(user)
 	// send a welcome email
+	code, cErr := utils.GenerateAndCacheCode()
+	if cErr != nil {
+		log.Println("Error generating code: ", cErr)
+	} else {
+
+		// send email
+		go utils.SendMail(user.Email, "Welcome to SprayDash", fmt.Sprintf("Your verification code is %d", code), user.Name)
+	}
 
 	return "User registered successfully", nil
 
