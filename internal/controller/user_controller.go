@@ -25,6 +25,7 @@ func (uc *UserController) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/auth/login", uc.Login)
 	rg.POST("/auth/social-auth", uc.LoginSocial)
 	rg.GET("/users", middleware.AuthMiddleware(uc.userService), uc.FetchUserDetails)
+	rg.POST("/payaza/webhook", uc.PayazaWebhook)
 }
 
 func (uc *UserController) Register(c *gin.Context) {
