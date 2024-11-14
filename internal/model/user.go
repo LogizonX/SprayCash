@@ -6,6 +6,7 @@ type User struct {
 	Email          string         `bson:"email" json:"email"`
 	Password       string         `bson:"password"  json:"-"`
 	WalletBalance  float64        `bson:"wallet_balance" json:"wallet_balance"`
+	Verified       bool           `bson:"verified" json:"verified"`
 	AccountDetails AccountDetails `bson:"account_details" json:"account_details"`
 }
 
@@ -15,6 +16,7 @@ func NewUser(name string, email string, password string) *User {
 		Email:         email,
 		Password:      password,
 		WalletBalance: 0.0,
+		Verified:      false,
 	}
 }
 

@@ -1,15 +1,59 @@
 package utils
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"fmt"
+	"html/template"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/LoginX/SprayDash/config"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"gopkg.in/gomail.v2"
 )
+
+var rdb *redis.Client
+
+func init() {
+	rdb = redis.NewClient(&redis.Options{
+		Addr: config.GetEnv("REDIS_URL", "localhost:6379"),
+		DB:   0,
+	})
+
+}
+
+func GenerateAndCacheCode() (int, error) {
+	// get random four digit code
+	rand.Seed(time.Now().UnixNano())
+	code := rand.Intn(10000)
+	// cache the code
+	ctx := context.Background()
+	err := rdb.Set(ctx, "code", code, 15*time.Minute).Err()
+	if err != nil {
+		log.Println("Error caching code:", err)
+		return 0, err
+	}
+	return code, nil
+
+}
+
+func GetCachedCode() (int, error) {
+	ctx := context.Background()
+	code, err := rdb.Get(ctx, "code").Int()
+	if err != nil {
+		log.Println("Error getting cached code:", err)
+		return 0, err
+	}
+	return code, nil
+}
 
 func Response(statusCode int, data any, message any) map[string]any {
 	var status string
@@ -68,14 +112,6 @@ func GetUserFromContext(c *gin.Context) (any, error) {
 	if !exists {
 		return nil, errors.New("user not found")
 	}
-
-	// userResponse := &UserResponse{
-	// 	Id:            newUser["id"].(string),
-	// 	Name:          newUser["username"].(string),
-	// 	Email:         newUser["email"].(string),
-	// 	WalletBalance: newUser["wallet_balance"].(float64),
-	// }
-
 	return user, nil
 }
 
@@ -101,4 +137,58 @@ func GenerateReferenceCode() string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+func SendMail(recipient string, subject string, username string, message string) error {
+	// get the template
+	templ, err := os.ReadFile("internal/templates/email_template.html")
+	if err != nil {
+		log.Println("Error reading email template:", err)
+		return err
+	}
+	t, err := template.New("email").Parse(string(templ))
+	if err != nil {
+		log.Println("Error parsing email template:", err)
+		return err
+	}
+	// mail data
+	mailData := map[string]interface{}{
+		"username": username,
+		"message":  message,
+	}
+	// write the maildata to bytes buffer
+	buf := new(bytes.Buffer)
+	err = t.Execute(buf, mailData)
+	if err != nil {
+		log.Println("Error executing email template:", err)
+		return err
+	}
+	m := gomail.NewMessage()
+
+	// Set email headers
+	m.SetHeader("From", "sainthaywon80@gmail.com")
+	m.SetHeader("To", recipient)
+	m.SetHeader("Subject", subject)
+
+	// Set the HTML body
+	m.SetBody("text/html", buf.String())
+	smtpHost := config.GetEnv("SMTP_HOST", "smtp.gmail.com")
+	smtpPort := 465
+	smtpUser := config.GetEnv("SMTP_USER", "protected@gmail.com")
+	smtpPass := config.GetEnv("SMTP_PWD", "protected")
+
+	// Create a new SMTP dialer
+	d := gomail.NewDialer(smtpHost, smtpPort, smtpUser, smtpPass)
+
+	// Send the email and handle errors
+	if err := d.DialAndSend(m); err != nil {
+		fmt.Println("Error sending email:", err)
+		return err
+	}
+
+	// Success message
+	fmt.Println("Email sent successfully!")
+
+	return nil
+
 }
