@@ -78,6 +78,7 @@ func (u *UserRepositoryImpl) DebitUser(ctx context.Context, amount float64, user
 
 func (u *UserRepositoryImpl) UpdateUserBankDetails(ctx context.Context, userEmail string, accountDetails *model.AccountDetails) error {
 	fmt.Println("Updating bank details: ", userEmail)
+	fmt.Println(accountDetails)
 	collection := u.db.Collection("users")
 	filter := bson.M{"email": userEmail}
 	update := bson.M{"$set": bson.M{"account_details": accountDetails}}

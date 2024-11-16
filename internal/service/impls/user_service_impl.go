@@ -39,6 +39,7 @@ func (s *UserServiceImpl) generateVirtualAccount(user *model.User) {
 		fmt.Println("Error generating virtual account:", err)
 		return
 	}
+	fmt.Println("Response body: ", responseBody)
 	accountDetails := model.NewAccountDetails(responseBody.ResponseContent.VirtualAccountName, responseBody.ResponseContent.VirtualAccountNumber, responseBody.ResponseContent.VirtualProviderBankName, responseBody.ResponseContent.VirtualProviderBankCode)
 	// update bankdetails
 	err = s.repo.UpdateUserBankDetails(ctx, user.Email, accountDetails)
