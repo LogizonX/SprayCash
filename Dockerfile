@@ -19,6 +19,8 @@ RUN apk add --no-cache ca-certificates
 
 COPY --from=build /app/api .
 
+COPY --from=build /app/internal/utils/templates /internal/utils/templates
+
 # Expose the application's port (change as needed)
 EXPOSE 8080
 
