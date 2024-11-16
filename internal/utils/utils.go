@@ -36,7 +36,7 @@ func init() {
 func GenerateAndCacheCode() (int, error) {
 	// get random four digit code
 	rand.Seed(time.Now().UnixNano())
-	code := rand.Intn(10000)
+	code := rand.Intn(9000) + 1000
 	// cache the code
 	ctx := context.Background()
 	err := rdb.Set(ctx, "code", code, 15*time.Minute).Err()
