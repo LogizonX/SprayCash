@@ -84,6 +84,8 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 	}
 	partyGuest := model.NewPartyGuest(party.Id, parsedUser.Email, conn, parsedUser.Id)
 	party.JoinParty(partyGuest)
+	// broadcast channel to receive messaage from the routine of disbursement
+	// broadcast := make(chan model.Message)
 	// listen for message in a goroutine
 	go func() {
 		defer conn.Close()

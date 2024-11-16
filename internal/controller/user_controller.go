@@ -25,6 +25,7 @@ func (uc *UserController) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/auth/login", uc.Login)
 	rg.POST("/auth/social-auth", uc.LoginSocial)
 	rg.GET("/users", middleware.AuthMiddleware(uc.userService), uc.FetchUserDetails)
+	rg.POST("/payaza/webhook", uc.PayazaWebhook)
 }
 
 func (uc *UserController) Register(c *gin.Context) {
@@ -121,4 +122,29 @@ func (uc *UserController) LoginSocial(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, utils.Response(http.StatusOK, resp, "Login Successful"))
+}
+
+func (uc *UserController) GenerateDynamicAccount(c *gin.Context) {
+
+}
+
+func (uc *UserController) PayazaWebhook(c *gin.Context) {
+	pl := new(dto.Transaction)
+	if err := c.ShouldBindJSON(&pl); err != nil {
+		log.Println(err)
+		c.JSON(400, utils.Response(http.StatusBadRequest, nil, err.Error()))
+		return
+	}
+	msg, rErr := uc.userService.PayazaWebhook(pl)
+	if rErr != nil {
+		log.Println("this is the error: ", rErr)
+		if rErr.Error() == "request timed out" {
+			c.JSON(408, utils.Response(http.StatusRequestTimeout, nil, rErr.Error()))
+			return
+		}
+		c.JSON(500, utils.Response(http.StatusInternalServerError, nil, rErr.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Response(http.StatusOK, nil, msg))
+
 }
