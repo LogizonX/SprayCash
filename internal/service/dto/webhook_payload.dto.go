@@ -46,3 +46,19 @@ type TransactionResponse struct {
 	Success bool            `json:"success"`
 	Data    TransactionData `json:"data"`
 }
+
+type TestFundDTO struct {
+	Amount        float64 `json:"amount"`
+	AccountNumber string  `json:"account_number"`
+}
+
+type TestFundAccountResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type FundAccountPayazaResponse struct {
+	ResponseCode         int    `json:"response_code"`
+	ResponseMessage      string `json:"response_message"`
+	TransactionReference string `json:"transactionreference"`
+}
