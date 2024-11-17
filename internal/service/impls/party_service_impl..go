@@ -62,3 +62,13 @@ func (ps *PartyServiceImpl) LeaveParty(inviteCode string, guestId string) error 
 	}
 	return nil
 }
+
+func (ps *PartyServiceImpl) GetAllPartyGuests(inviteCode string) ([]*model.PartyGuest, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	guests, err := ps.repo.GetAllPartyGuests(ctx, inviteCode)
+	if err != nil {
+		return nil, err
+	}
+	return guests, nil
+}

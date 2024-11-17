@@ -31,6 +31,7 @@ func (ps *PartyController) RegisterPartyRoutes(rg *gin.RouterGroup) {
 	ws := rg.Group("/ws")
 	{
 		partyRoutes.POST("/create", ps.CreateParty)
+		partyRoutes.GET("/guests", middleware.AuthMiddleware(ps.userService), ps.GetGuests)
 		ws.GET("/joinParty", middleware.AuthMiddleware(ps.userService), ps.JoinParty)
 	}
 }
@@ -122,4 +123,14 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 		}
 	}()
 
+}
+
+func (ps *PartyController) GetGuests(c *gin.Context) {
+	inviteCode := c.Query("inviteCode")
+	guests, err := ps.partyService.GetAllPartyGuests(inviteCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Response(http.StatusInternalServerError, nil, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Response(http.StatusOK, guests, "Guests retrieved successfully"))
 }

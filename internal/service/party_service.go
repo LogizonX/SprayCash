@@ -10,4 +10,5 @@ type PartyService interface {
 	GetParty(inviteCode string) (*model.Party, error)
 	JoinParty(inviteCode string, partyGuest *model.PartyGuest) (*model.Party, error)
 	LeaveParty(inviteCode string, guestId string) error
+	GetAllPartyGuests(inviteCode string) ([]*model.PartyGuest, error)
 }

@@ -64,3 +64,17 @@ func (p *PartyRepoImpl) RemoveGuest(ctx context.Context, inviteCode string, gues
 	}
 	return nil
 }
+
+func (p *PartyRepoImpl) GetAllPartyGuests(ctx context.Context, inviteCode string) ([]*model.PartyGuest, error) {
+	collection := p.db.Collection("party")
+	var party model.Party
+	err := collection.FindOne(ctx, primitive.M{"inviteCode": inviteCode}).Decode(&party)
+	if err != nil {
+		return nil, err
+	}
+	var guests []*model.PartyGuest
+	for _, guest := range party.Guests {
+		guests = append(guests, guest)
+	}
+	return guests, nil
+}

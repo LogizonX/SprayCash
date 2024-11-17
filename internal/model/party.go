@@ -36,6 +36,7 @@ func (p *PartyConnPool) BroadcastMessage(msg *Message) {
 	}
 }
 
+// Implementing the singleton pattern, to ensure that there is only one instance of the party connection pool
 var (
 	instance *PartyConnPool
 	once     sync.Once
