@@ -21,8 +21,8 @@ type Party struct {
 
 type PartyConnPool struct {
 	mu     sync.RWMutex
-	Guests map[string]*PartyGuest `bson:"guests" json:"guests"`
-	Party  *Party                 `bson:"party" json:"party"`
+	Guests map[string]*PartyGuest
+	Party  *Party
 }
 
 // party broadcast message
@@ -36,11 +36,19 @@ func (p *PartyConnPool) BroadcastMessage(msg *Message) {
 	}
 }
 
+var (
+	instance *PartyConnPool
+	once     sync.Once
+)
+
 func NewPartyConnPool(party *Party) *PartyConnPool {
-	return &PartyConnPool{
-		Guests: make(map[string]*PartyGuest),
-		Party:  party,
-	}
+	once.Do(func() {
+		instance = &PartyConnPool{
+			Guests: make(map[string]*PartyGuest),
+			Party:  party,
+		}
+	})
+	return instance
 }
 
 // broadcast ranking
