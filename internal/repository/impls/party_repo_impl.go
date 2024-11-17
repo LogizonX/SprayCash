@@ -40,3 +40,27 @@ func (p *PartyRepoImpl) GetPartyByInviteCode(ctx context.Context, inviteCode str
 	}
 	return &party, nil
 }
+
+func (p *PartyRepoImpl) JoinPartyPersist(ctx context.Context, inviteCode string, partyGuest *model.PartyGuest) (*model.Party, error) {
+	collection := p.db.Collection("party")
+	_, err := collection.UpdateOne(ctx, primitive.M{"inviteCode": inviteCode}, primitive.M{"$set": primitive.M{"guests." + partyGuest.UserId: partyGuest}})
+	if err != nil {
+		return nil, err
+	}
+	var updatedParty model.Party
+	err = collection.FindOne(ctx, primitive.M{"inviteCode": inviteCode}).Decode(&updatedParty)
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedParty, nil
+}
+
+func (p *PartyRepoImpl) RemoveGuest(ctx context.Context, inviteCode string, guestId string) error {
+	collection := p.db.Collection("party")
+	_, err := collection.UpdateOne(ctx, primitive.M{"inviteCode": inviteCode}, primitive.M{"$unset": primitive.M{"guests." + guestId: ""}})
+	if err != nil {
+		return err
+	}
+	return nil
+}

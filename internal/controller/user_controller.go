@@ -129,6 +129,7 @@ func (uc *UserController) GenerateDynamicAccount(c *gin.Context) {
 
 }
 
+
 func (uc *UserController) PayazaWebhook(c *gin.Context) {
 	pl := new(dto.Transaction)
 	if err := c.ShouldBindJSON(&pl); err != nil {
