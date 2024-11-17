@@ -57,7 +57,9 @@ There is a need for a solution that preserves the essence of `Nanwo Lagbo` while
 
 
 
+
 ## Database Design
+![table](/assets/tab.png)
 
 
 ## Code Design
