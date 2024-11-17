@@ -3,36 +3,63 @@ package model
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/LoginX/SprayDash/internal/utils"
 	"github.com/gorilla/websocket"
 )
 
 type Party struct {
-	Id         string                 `bson:"_id,omitempty" json:"id"`
-	Name       string                 `bson:"name" json:"name"`
-	Tag        string                 `bson:"tag" json:"tag"`
-	HostEmail  string                 `bson:"hostEmail" json:"hostEmail"`
-	InviteCode string                 `bson:"inviteCode" json:"inviteCode"`
+	Id         string `bson:"_id,omitempty" json:"id"`
+	Name       string `bson:"name" json:"name"`
+	Tag        string `bson:"tag" json:"tag"`
+	HostEmail  string `bson:"hostEmail" json:"hostEmail"`
+	InviteCode string `bson:"inviteCode" json:"inviteCode"`
+	mu         sync.RWMutex
 	Guests     map[string]*PartyGuest `bson:"guests" json:"guests"`
+}
+
+type PartyConnPool struct {
+	mu     sync.RWMutex
+	Guests map[string]*PartyGuest
+	Party  *Party
 }
 
 // party broadcast message
 // from this, I will loop through the clients and write the message
-func (p *Party) BroadcastMessage(msg *Message) {
+func (p *PartyConnPool) BroadcastMessage(msg *Message) {
+	fmt.Println("Broadcasting message to party guests")
+	fmt.Println("pool guest: %w", p.Guests)
 	for _, guest := range p.Guests {
 		guest.conn.WriteJSON(msg)
+		fmt.Println("Broadcasting message to ", guest.Username)
 	}
 }
 
+// Implementing the singleton pattern, to ensure that there is only one instance of the party connection pool
+var (
+	instance *PartyConnPool
+	once     sync.Once
+)
+
+func NewPartyConnPool(party *Party) *PartyConnPool {
+	once.Do(func() {
+		instance = &PartyConnPool{
+			Guests: make(map[string]*PartyGuest),
+			Party:  party,
+		}
+	})
+	return instance
+}
+
 // broadcast ranking
-func (p *Party) BroadcastRanking() {
+func (p *PartyConnPool) BroadcastRanking() {
 	for _, guest := range p.Guests {
 		guest.conn.WriteJSON(p.GetRanking())
 	}
 }
 
-func (p *Party) GetRanking() []*GuestsData {
+func (p *PartyConnPool) GetRanking() []*GuestsData {
 	var ranking []*GuestsData
 	for _, guest := range p.Guests {
 		ranking = append(ranking, NewGuestData(guest.PartyId, guest.UserId, guest.Username, int64(guest.TotalSpent)))
@@ -41,17 +68,18 @@ func (p *Party) GetRanking() []*GuestsData {
 }
 
 // leave party
-func (p *Party) LeaveParty(userId string) {
+func (p *PartyConnPool) LeaveParty(userId string) {
 	guest := p.Guests[userId]
 	delete(p.Guests, userId)
-	go p.BroadcastMessage(NewMessage(p.Id, fmt.Sprintf("%s has left the party", guest.Username), guest.Username, guest.UserId))
+	go p.BroadcastMessage(NewMessage(p.Party.Id, fmt.Sprintf("%s has left the party", guest.Username), guest.Username, guest.UserId))
 }
 
 // join party
-func (p *Party) JoinParty(guest *PartyGuest) {
+func (p *PartyConnPool) JoinParty(guest *PartyGuest) {
+	fmt.Println("Adding user: ", guest.UserId)
 	p.Guests[guest.UserId] = guest
 	// broadcast a new user joining the party
-	go p.BroadcastMessage(NewMessage(p.Id, fmt.Sprintf("%s has joined the party", guest.Username), guest.Username, guest.UserId))
+	go p.BroadcastMessage(NewMessage(p.Party.Id, fmt.Sprintf("%s has joined the party", guest.Username), guest.Username, guest.UserId))
 }
 
 // read message from client
@@ -108,6 +136,7 @@ func NewParty(name string, tag string, hostEmail string) *Party {
 		HostEmail:  hostEmail,
 		InviteCode: inviteCode,
 		Guests:     make(map[string]*PartyGuest),
+		mu:         sync.RWMutex{},
 	}
 }
 

@@ -1,6 +1,7 @@
 package impls
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/LoginX/SprayDash/config"
@@ -188,19 +190,22 @@ func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseD
 }
 
 func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
+	fmt.Println("Incoming Data!")
 	// get the user by the email
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	// get the transaction reference and query transaction status
+	data := ""
 	tranRef := pl.TransactionReference
-	url := fmt.Sprintf("https://api.payaza.africa/live/payaza-account/api/v1/mainaccounts/merchant/transaction/%s", tranRef)
-	req, err := http.NewRequest("GET", url, nil)
+	url := fmt.Sprintf("https://api.payaza.africa/live/merchant-collection/transfer_notification_controller/transaction-query?transaction_reference=%s", tranRef)
+	req, err := http.NewRequest("GET", url, strings.NewReader(data))
 	if err != nil {
 		log.Println("Error creating request:", err)
 		return "", err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Payaza %s", config.GetEnv("PAYAZA_API_KEY", "somkey")))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-TenantID", "test")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -213,17 +218,15 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 		log.Println("Error reading response body:", rErr)
 		return "", rErr
 	}
-	// convert the response to a byte runes
-	resBytes := []byte(string(res))
 	responseBody := new(dto.TransactionResponse)
-	// unmarshal the response
-	err = json.Unmarshal(resBytes, responseBody)
+	err = json.Unmarshal(res, responseBody)
+	fmt.Println(responseBody)
 	if err != nil {
 		log.Println("Error unmarshalling response:", err)
 		return "", err
 	}
 	// check the status of the transaction
-	if responseBody.Data.TransactionStatus == "NIP_SUCCESS" && responseBody.Status == true {
+	if responseBody.Data.TransactionStatus == "Completed" && responseBody.Success {
 		// get user by the virtual account number
 		virtualAccountNumber := pl.VirtualAccountNumber
 		user, err := s.repo.GetUserByVirtualAccount(ctx, virtualAccountNumber)
@@ -232,10 +235,10 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 			return "", err
 		}
 
-		newWalletHistory := model.NewWalletHistory(user.Email, float64(responseBody.Data.TransactionAmount), user.WalletBalance, user.WalletBalance+float64(responseBody.Data.TransactionAmount), responseBody.Data.TransactionReference)
+		newWalletHistory := model.NewWalletHistory(user.Email, float64(responseBody.Data.AmountReceived), user.WalletBalance, user.WalletBalance+float64(responseBody.Data.AmountReceived), responseBody.Data.TransactionReference)
 
 		// credit the user account
-		creditErr := s.repo.CreditUser(ctx, float64(responseBody.Data.TransactionAmount), user.Email, newWalletHistory)
+		creditErr := s.repo.CreditUser(ctx, float64(responseBody.Data.AmountReceived), user.Email, newWalletHistory)
 		if creditErr != nil {
 			log.Println("Error crediting user account:", creditErr)
 			return "", creditErr
@@ -246,5 +249,64 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 		return "success", nil
 	}
 	return "failed", errors.New("transaction failed")
+
+}
+
+func (s *UserServiceImpl) PayazaTestFundAccount(pl *dto.TestFundDTO) (*dto.TestFundAccountResponse, error) {
+	// fund payload
+	payload := map[string]interface{}{
+		"service_type": "Account",
+		"service_payload": map[string]interface{}{
+			"request_application":              "Payaza",
+			"application_module":               "USER_MODULE",
+			"application_version":              "1.0.0",
+			"request_class":                    "MerchantFundTestVirtualAccount",
+			"account_number":                   pl.AccountNumber,
+			"initiation_transaction_reference": utils.GenerateReferenceCode(),
+			"transaction_amount":               pl.Amount,
+			"currency":                         "NGN",
+			"source_account_number":            "4859693408",
+			"source_account_name":              "John Doe",
+			"source_bank_name":                 "Eastern Bank",
+		},
+	}
+	// marshal the payload
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		log.Println("Error marshalling data: ", err)
+		return nil, err
+	}
+	// send the request
+	url := "https://router.prod.payaza.africa/api/request/secure/payloadhandler"
+	req, rErr := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if rErr != nil {
+		log.Println("Error occurred setting request: ", rErr)
+		return nil, rErr
+	}
+	// set the request headers
+	req.Header.Set("Authorization", fmt.Sprintf("Payaza %s", config.GetEnv("PAYAZA_API_KEY", "somkey")))
+	req.Header.Set("X-TenantID", "test")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error sending request:", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return nil, err
+	}
+	payazaResp := new(dto.FundAccountPayazaResponse)
+	err = json.Unmarshal(body, payazaResp)
+	if err != nil {
+		log.Println("Error unmarshalling response:", err)
+		return nil, err
+	}
+	return &dto.TestFundAccountResponse{
+		Success: true,
+		Message: payazaResp.ResponseMessage,
+	}, nil
 
 }

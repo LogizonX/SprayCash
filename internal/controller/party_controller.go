@@ -31,6 +31,7 @@ func (ps *PartyController) RegisterPartyRoutes(rg *gin.RouterGroup) {
 	ws := rg.Group("/ws")
 	{
 		partyRoutes.POST("/create", ps.CreateParty)
+		partyRoutes.GET("/guests", middleware.AuthMiddleware(ps.userService), ps.GetGuests)
 		ws.GET("/joinParty", middleware.AuthMiddleware(ps.userService), ps.JoinParty)
 	}
 }
@@ -72,8 +73,13 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 	// get the invite code from the query params
 	inviteCode := c.Query("inviteCode")
 	// get the party by the invite code
-	party, err := ps.partyService.JoinParty(inviteCode)
+	party, err := ps.partyService.GetParty(inviteCode)
 	if err != nil {
+		if err.Error() == "mongo: no documents in result" {
+			c.JSON(http.StatusNotFound, utils.Response(http.StatusNotFound, nil, "Party not found"))
+			return
+		}
+		log.Println("failed to get party: ", err)
 		c.JSON(http.StatusInternalServerError, utils.Response(http.StatusInternalServerError, nil, err.Error()))
 		return
 	}
@@ -83,12 +89,21 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 		return
 	}
 	partyGuest := model.NewPartyGuest(party.Id, parsedUser.Email, conn, parsedUser.Id)
-	party.JoinParty(partyGuest)
+	party, err = ps.partyService.JoinParty(inviteCode, partyGuest)
+	fmt.Println("party guests: %w", party.Guests)
+	partyConnPool := model.NewPartyConnPool(party)
+	partyConnPool.JoinParty(partyGuest)
+	if err != nil {
+		log.Println("failed to join party: ", err)
+	}
 	// broadcast channel to receive messaage from the routine of disbursement
 	// broadcast := make(chan model.Message)
 	// listen for message in a goroutine
 	go func() {
-		defer conn.Close()
+		defer func() {
+			conn.Close()
+			ps.partyService.LeaveParty(inviteCode, parsedUser.Id)
+		}()
 		for {
 			var messageData model.MessageData
 			err := conn.ReadJSON(&messageData)
@@ -104,8 +119,18 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 			message := fmt.Sprintf("%s sends %d to %s", messageData.SenderIdName, messageData.Amount, messageData.ReceiverName)
 			log.Println("message: ", message)
 			bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
-			party.BroadcastMessage(bMessage)
+			partyConnPool.BroadcastMessage(bMessage)
 		}
 	}()
 
+}
+
+func (ps *PartyController) GetGuests(c *gin.Context) {
+	inviteCode := c.Query("inviteCode")
+	guests, err := ps.partyService.GetAllPartyGuests(inviteCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Response(http.StatusInternalServerError, nil, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Response(http.StatusOK, guests, "Guests retrieved successfully"))
 }
