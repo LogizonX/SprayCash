@@ -31,9 +31,9 @@ There is a need for a solution that preserves the essence of `Nanwo Lagbo` while
 - User registers with email or social login
 - A user can create an event/party -> Host an event inorder for the guest to join with invite code generated or qr Code
 - Guests can spray the host cash digitally and other guests the host as allowed to be sprayed giving the host the super privileged of how the cash are being disbursed with the party life cycle.
-- Guests that wants to spray cash digitally and enjoy the digital experience needs join the party with the inviteCode and fund their wallet with minimum amount of #500 not fixed yet though!
+- Guests that wants to spray cash digitally and enjoy the digital experience needs join the party with the inviteCode and fund their wallet with minimum amount of #500 not fixed yet though!, using [Payaza's](https://docs.payaza.africa/developers/apis) payment service
 - Users Using the app, gets a virtual account to fund the wallet
-- Users that joined the party can get real time spending updates, and ranking of users spending, more like a leader board, Omo! odogwu is at number 1 👀
+- Users that joined the party can get real time spending updates, and ranking of users spending, more like a leader's board, Omo! odogwu is at number 1 👀
 - When a user in the party spray any amount it get's broadcasted immediately to all party guests, and the spraying guest get debited, while the sprayed user gets funded, although their some technical challenges and considerations which will be discussed in the technical challenges part
 - Ability for a guest to spray cash anonymously
 - The host(s) and guest that received funds in the party can withdraw their funds to their respective banks or use as digital wallet for other items like bills payment, utility payment and more.
@@ -43,9 +43,9 @@ There is a need for a solution that preserves the essence of `Nanwo Lagbo` while
 
 
 ### Non-Functional Requirements <a name="nfr"></a>
-- High Availability: Yoo!, Our system can never go down, seriously like never, hence why we prioritizing building a system that will have the bearest minimum downtime if ever, because we afford it. I mean that was what Mark also told Edward when they where building Facebook, I'm a fan of Mark and The Social Network. But how?, well for one, if you've gone through the codebase you'll notice we building an orthogonal system, a loose coupled system with the help of Dependency Injection, Interfaces and Single Responsibility Principle Pattern, to help improve the system fault tolerance as well as having a scalable infrastructure such as deploying with kubernetes with it's auto-scaling and load balancing capabilites to avoid a particular server being choked with traffic. 
+- High Availability: Yoo!, Our system can never go down, seriously like never, hence why we prioritizing building a system that will have the bearest minimum downtime if ever, because we can't afford it. I mean that was what Mark also told Edward when they where building Facebook, I'm a fan of Mark and The Social Network. But how?, well for one, if you've gone through the codebase you'll notice we building an orthogonal system, a loose coupled system with the help of Dependency Injection, Interfaces and Single Responsibility Principle Pattern, to help improve the system fault tolerance as well as having a scalable infrastructure such as deploying with kubernetes with it's auto-scaling and load balancing capability to avoid a particular server being choked with traffic. 
 - Scalability: We also prioritize this, because our system is basically about the idea of concurrent operation, its part of the reason for the programming language choice `GO` due to its supper power of handling concurrency with goroutine seamlessly without the necessary need of using event driven architecture(EDA) and the use of kubernetes for multiple pods deployment and auto-scaling when there's a spike.
-- Low Latency: I mean, Obviously this is really important too, our system can be slow.
+- Low Latency: I mean, Obviously this is really important too, our system can't be slow.
 
 
 ## High Level Architecture <a name="hla"></a>
@@ -87,8 +87,7 @@ There is a need for a solution that preserves the essence of `Nanwo Lagbo` while
 ## Technical Challenges
 
 Why working on the websocket connections, we had some challenges keeping the websocket connection alive through out the party duration, and also the issue of recreating a new connection when a new guests joins the party, thereby preventing us to be able to broadcast the new join event to the guest already in party.
-The first issue was from the code logical naive implementation, the socket conn wasn't deferred to close at the end of a goroutine, at first for a second I couldn't place why the connection keeps disconnecting immediately it connects, but after a moment of processing the code flow 🤦, I realized I was closing the connection outside the goroutine function that keeps the connection alive. The second arise from the fact that we where persisting our guests to our document database and weren't able to keep track of their connection objects and also creating a new websocket connection pool for the guest.  
-
+The first issue was from the code logical naive implementation, the socket conn wasn't deferred to close at the end of a goroutine, at first for a second I couldn't place why the connection keeps disconnecting immediately it connects, but after a moment of processing the code flow 🤦, I realized I was closing the connection outside the goroutine function that keeps the connection alive. The second arose from the fact that we where persisting our guests to our document database and we weren't able to keep track of their connection objects and also creating a new websocket connection pool for the guest. So after careful analysis of the challenge we have we we able to use data structure and singleton design pattern to achieve an optimal and efficient solution.
 
 ## Backend Service Demo
 
@@ -97,3 +96,9 @@ The first issue was from the code logical naive implementation, the socket conn 
 https://github.com/user-attachments/assets/627284c9-3a1e-4ebc-9612-ffa8d519b180
 
 
+
+## API Postman Documentation and Live URL
+
+[Api docs](https://www.postman.com/planetary-station-577726/workspace/spraydash)
+
+[Live Url](spraydash-h6fahwahdtezbmcm.westeurope-01.azurewebsites.net)
