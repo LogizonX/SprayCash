@@ -142,9 +142,9 @@ func GenerateReferenceCode() string {
 	return string(b)
 }
 
-func SendMail(recipient string, subject string, username string, message string) error {
+func SendMail(recipient string, subject string, username string, message string, template_name string) error {
 	// get the template
-	templ, err := os.ReadFile("internal/utils/templates/email_template.html")
+	templ, err := os.ReadFile(fmt.Sprintf("internal/utils/templates/%s.html", template_name))
 	if err != nil {
 		log.Println("Error reading email template:", err)
 		return err

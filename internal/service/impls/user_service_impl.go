@@ -90,7 +90,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	} else {
 
 		// send email
-		go utils.SendMail(user.Email, "Welcome to SprayDash", user.Name, fmt.Sprintf("%d", code))
+		go utils.SendMail(user.Email, "Welcome to SprayDash", user.Name, fmt.Sprintf("%d", code), "email_template")
 	}
 
 	return "User registered successfully", nil
@@ -245,7 +245,8 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 		}
 		// send a mail to the user
 		// TODO: change email template for this
-		go utils.SendMail(user.Email, "Fund Successful", user.Name, "Your transaction was successful")
+		message := "Your Wallet has been credited with " + strconv.FormatFloat(float64(responseBody.Data.AmountReceived), 'f', 2, 64)
+		go utils.SendMail(user.Email, "Fund Successful", user.Name, message, "fund_success_template")
 		return "success", nil
 	}
 	return "failed", errors.New("transaction failed")
