@@ -192,7 +192,7 @@ func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseD
 func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 	fmt.Println("Incoming Data!")
 	// get the user by the email
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	// get the transaction reference and query transaction status
 	data := ""
