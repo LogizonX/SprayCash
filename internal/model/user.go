@@ -22,6 +22,33 @@ type WalletHistory struct {
 	CreatedAt      time.Time `bson:"created_at" json:"created_at"`
 }
 
+type FundsTracking struct {
+	Id             string    `bson:"_id,omitempty" json:"id"`
+	ReceiverEmail  string    `bson:"receiver_email" json:"receiver_email"`
+	ReceiverName   string    `bson:"receiver_name" json:"receiver_name"`
+	SenderEmail    string    `bson:"sender_email" json:"sender_email"`
+	SenderName     string    `bson:"sender_name" json:"sender_name"`
+	Amount         float64   `bson:"amount" json:"amount"`
+	CreatedAt      time.Time `bson:"created_at" json:"created_at"`
+	Status         string    `bson:"status" json:"status"`
+	TransactionRef string    `bson:"transaction_ref" json:"transaction_ref"`
+	InviteCode     string    `bson:"invite_code" json:"invite_code"`
+}
+
+func NewFundsTracking(receiverEmail string, receiverName string, senderEmail string, senderName string, amount float64, status string, transactionRef string, inviteCode string) *FundsTracking {
+	return &FundsTracking{
+		ReceiverEmail:  receiverEmail,
+		ReceiverName:   receiverName,
+		SenderEmail:    senderEmail,
+		SenderName:     senderName,
+		Amount:         amount,
+		CreatedAt:      time.Now(),
+		Status:         status,
+		TransactionRef: transactionRef,
+		InviteCode:     inviteCode,
+	}
+}
+
 func NewWalletHistory(userId string, amount float64, previousAmount float64, afterAmount float64, transactionRef string) *WalletHistory {
 	return &WalletHistory{
 		UserId:         userId,

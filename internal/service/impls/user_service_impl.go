@@ -250,6 +250,52 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 		return "success", nil
 	}
 	return "failed", errors.New("transaction failed")
+}
+
+func (s *UserServiceImpl) DisburseFunds(msg model.MessageData, inviteCode string) (string, error) {
+	// get the user by the email
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	receiverUser, err := s.repo.GetUserByEmail(ctx, msg.ReceiverEmail)
+	if err != nil {
+		log.Println("Error getting user by email:", err)
+		return "error", err
+	}
+	senderUser, err := s.repo.GetUserByEmail(ctx, msg.SenderEmail)
+	if err != nil {
+		log.Println("Error getting user by email:", err)
+		return "error", err
+	}
+	tranRef := utils.GenerateReferenceCode()
+	newWalletHistoryReceiver := model.NewWalletHistory(receiverUser.Email, float64(msg.Amount), receiverUser.WalletBalance, receiverUser.WalletBalance+float64(msg.Amount), tranRef)
+	// debit the sender account
+	newWalletHistorySender := model.NewWalletHistory(senderUser.Email, float64(msg.Amount), senderUser.WalletBalance, senderUser.WalletBalance-float64(msg.Amount), tranRef)
+	debitErr := s.repo.DebitUser(ctx, float64(msg.Amount), senderUser.Email, newWalletHistorySender)
+	if debitErr != nil {
+		log.Println("Error debiting user account:", debitErr)
+		return "error", debitErr
+	}
+	// credit the user account
+	creditErr := s.repo.CreditUser(ctx, float64(msg.Amount), receiverUser.Email, newWalletHistoryReceiver)
+	if creditErr != nil {
+		log.Println("Error crediting user account:", creditErr)
+		newFunds := model.NewFundsTracking(receiverUser.Email, receiverUser.Name, senderUser.Email, senderUser.Name, float64(msg.Amount), "failed", tranRef, inviteCode)
+		_, err = s.repo.CreateNewFundsTracking(ctx, newFunds)
+		if err != nil {
+			log.Println("Error creating funds tracking record:", err)
+		}
+		// refund the sender
+		newWalletHistorySender = model.NewWalletHistory(senderUser.Email, float64(msg.Amount), senderUser.WalletBalance, senderUser.WalletBalance+float64(msg.Amount), tranRef)
+		_ = s.repo.CreditUser(ctx, float64(msg.Amount), senderUser.Email, newWalletHistorySender)
+		return "error", creditErr
+	}
+	// create new successful transaction
+	newFunds := model.NewFundsTracking(receiverUser.Email, receiverUser.Name, senderUser.Email, senderUser.Name, float64(msg.Amount), "success", tranRef, inviteCode)
+	_, err = s.repo.CreateNewFundsTracking(ctx, newFunds)
+	if err != nil {
+		log.Println("Error creating funds tracking record:", err)
+	}
+	return "success", nil
 
 }
 

@@ -15,4 +15,5 @@ type UserRepository interface {
 	UpdateUserBankDetails(ctx context.Context, userEmail string, accountDetails *model.AccountDetails) error
 	GetUserByVirtualAccount(ctx context.Context, virtualAccount string) (*model.User, error)
 	CreateWalletHistory(ctx context.Context, walletHistory *model.WalletHistory) (*model.WalletHistory, error)
+	CreateNewFundsTracking(ctx context.Context, fundsTracking *model.FundsTracking) (*model.FundsTracking, error)
 }

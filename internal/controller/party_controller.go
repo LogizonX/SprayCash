@@ -96,6 +96,7 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 	if err != nil {
 		log.Println("failed to join party: ", err)
 	}
+
 	// broadcast channel to receive messaage from the routine of disbursement
 	// broadcast := make(chan model.Message)
 	// listen for message in a goroutine
@@ -104,23 +105,45 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 			conn.Close()
 			ps.partyService.LeaveParty(inviteCode, parsedUser.Id)
 		}()
-		for {
-			var messageData model.MessageData
-			err := conn.ReadJSON(&messageData)
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("Unexpected close error: %v", err)
+		broadcastChan := make(chan model.MessageData)
+		go func() {
+			for {
+				var messageData model.MessageData
+				err := conn.ReadJSON(&messageData)
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						log.Printf("Unexpected close error: %v", err)
+					}
+					log.Println("failed to read message: ", err)
+					break
 				}
-				log.Println("failed to read message: ", err)
-				break
+				// send disbursement to rabbit queue
+				// broadcast the message to all guests in the party
+				message := fmt.Sprintf("%s sends %d to %s", messageData.SenderName, messageData.Amount, messageData.ReceiverName)
+				log.Println("message: ", message)
+				bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
+				partyConnPool.BroadcastMessage(bMessage)
 			}
-			// send disbursement to rabbit queue
-			// broadcast the message to all guests in the party
-			message := fmt.Sprintf("%s sends %d to %s", messageData.SenderIdName, messageData.Amount, messageData.ReceiverName)
-			log.Println("message: ", message)
-			bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
-			partyConnPool.BroadcastMessage(bMessage)
-		}
+		}()
+
+		// listen for message from the broadcast channel
+		go func() {
+			for msg := range broadcastChan {
+				status, err := ps.userService.DisburseFunds(msg, inviteCode)
+				if err != nil {
+					log.Println("failed to disburse funds: ", err)
+					continue
+				} else {
+					log.Println("funds disbursed successfully: ", status)
+					// broadcast the message to all guests in the party
+					message := fmt.Sprintf("%s sends %d to %s", msg.SenderName, msg.Amount, msg.ReceiverName)
+					log.Println("message: ", message)
+					bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
+					partyConnPool.BroadcastMessage(bMessage)
+				}
+
+			}
+		}()
 	}()
 
 }

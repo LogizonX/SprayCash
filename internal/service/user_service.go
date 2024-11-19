@@ -13,4 +13,5 @@ type UserService interface {
 	LoginSocial(loginDto dto.LoginSocialDTO) (dto.LoginResponseDTO, error)
 	PayazaWebhook(pl *dto.Transaction) (string, error)
 	PayazaTestFundAccount(pl *dto.TestFundDTO) (*dto.TestFundAccountResponse, error)
+	DisburseFunds(msg model.MessageData, inviteCode string) (string, error)
 }

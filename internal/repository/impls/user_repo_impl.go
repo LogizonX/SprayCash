@@ -104,3 +104,13 @@ func (u *UserRepositoryImpl) GetUserByVirtualAccount(ctx context.Context, virtua
 	}
 	return &user, nil
 }
+
+func (u *UserRepositoryImpl) CreateNewFundsTracking(ctx context.Context, fundsTracking *model.FundsTracking) (*model.FundsTracking, error) {
+	collection := u.db.Collection("funds_trackings")
+	newFundsTracking, err := collection.InsertOne(ctx, fundsTracking)
+	if err != nil {
+		return nil, err
+	}
+	fundsTracking.Id = newFundsTracking.InsertedID.(primitive.ObjectID).Hex()
+	return fundsTracking, nil
+}
