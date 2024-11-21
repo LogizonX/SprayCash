@@ -136,12 +136,13 @@ func (ps *PartyController) JoinParty(c *gin.Context) {
 			if err != nil {
 				log.Println("failed to disburse funds: ", err)
 				continue
+			} else {
+				log.Println("funds disbursed successfully: ", status)
+				message := fmt.Sprintf("%s sends %d to %s", msg.SenderName, msg.Amount, msg.ReceiverName)
+				log.Println("message: ", message)
+				bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
+				partyConnPool.BroadcastMessage(bMessage)
 			}
-			log.Println("funds disbursed successfully: ", status)
-			message := fmt.Sprintf("%s sends %d to %s", msg.SenderName, msg.Amount, msg.ReceiverName)
-			log.Println("message: ", message)
-			bMessage := model.NewMessage(party.Id, message, partyGuest.Username, parsedUser.Id)
-			partyConnPool.BroadcastMessage(bMessage)
 		}
 	}()
 }

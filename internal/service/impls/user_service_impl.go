@@ -270,6 +270,10 @@ func (s *UserServiceImpl) DisburseFunds(msg model.MessageData, inviteCode string
 	newWalletHistoryReceiver := model.NewWalletHistory(receiverUser.Email, float64(msg.Amount), receiverUser.WalletBalance, receiverUser.WalletBalance+float64(msg.Amount), tranRef)
 	// debit the sender account
 	newWalletHistorySender := model.NewWalletHistory(senderUser.Email, float64(msg.Amount), senderUser.WalletBalance, senderUser.WalletBalance-float64(msg.Amount), tranRef)
+	// check if the sender has enough funds
+	if senderUser.WalletBalance < float64(msg.Amount) {
+		return "error", errors.New("insufficient funds")
+	}
 	debitErr := s.repo.DebitUser(ctx, float64(msg.Amount), senderUser.Email, newWalletHistorySender)
 	if debitErr != nil {
 		log.Println("Error debiting user account:", debitErr)
