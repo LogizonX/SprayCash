@@ -94,6 +94,17 @@ func (u *UserRepositoryImpl) UpdateUserBankDetails(ctx context.Context, userEmai
 	return nil
 }
 
+func (u *UserRepositoryImpl) UpdateUser(ctx context.Context, updateMap map[string]interface{}, email string) (*model.User, error) {
+	collection := u.db.Collection("users")
+	filter := bson.M{"email": email}
+	update := bson.M{"$set": updateMap}
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return nil, err
+	}
+	return u.GetUserByEmail(ctx, email)
+}
+
 func (u *UserRepositoryImpl) GetUserByVirtualAccount(ctx context.Context, virtualAccount string) (*model.User, error) {
 	collection := u.db.Collection("users")
 	var user model.User
