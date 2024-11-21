@@ -33,13 +33,13 @@ func init() {
 
 }
 
-func GenerateAndCacheCode() (int, error) {
+func GenerateAndCacheCode(email string) (int, error) {
 	// get random four digit code
 	rand.Seed(time.Now().UnixNano())
 	code := rand.Intn(9000) + 1000
 	// cache the code
 	ctx := context.Background()
-	err := rdb.Set(ctx, "code", code, 15*time.Minute).Err()
+	err := rdb.Set(ctx, email, code, 15*time.Minute).Err()
 	if err != nil {
 		log.Println("Error caching code:", err)
 		return 0, err
@@ -48,9 +48,9 @@ func GenerateAndCacheCode() (int, error) {
 
 }
 
-func GetCachedCode() (int, error) {
+func GetCachedCode(email string) (int, error) {
 	ctx := context.Background()
-	code, err := rdb.Get(ctx, "code").Int()
+	code, err := rdb.Get(ctx, email).Int()
 	if err != nil {
 		log.Println("Error getting cached code:", err)
 		return 0, err

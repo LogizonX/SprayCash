@@ -84,7 +84,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	// get the bank details in a goroutine
 	go s.generateVirtualAccount(user)
 	// send a welcome email
-	code, cErr := utils.GenerateAndCacheCode()
+	code, cErr := utils.GenerateAndCacheCode(newUser.Email)
 	if cErr != nil {
 		log.Println("Error generating code: ", cErr)
 	} else {
@@ -95,6 +95,38 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 
 	return "User registered successfully", nil
 
+}
+
+func (s *UserServiceImpl) VerifyUser(pl dto.VerifyUserDTO) (string, error) {
+	// get the user by the email
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := s.repo.GetUserByEmail(ctx, pl.Email)
+	if err != nil {
+		log.Println("Error getting user by email:", err)
+		return "error", errors.New("user not found")
+	}
+	// get code
+	code, cErr := utils.GetCachedCode(pl.Email)
+	if cErr != nil {
+		log.Println("Error getting cached code:", cErr)
+		return "error", cErr
+	}
+	if pl.Code != code {
+		return "error", errors.New("invalid code")
+
+	}
+
+	// update the user account
+	updateMap := map[string]interface{}{
+		"verified": true,
+	}
+	_, uErr := s.repo.UpdateUser(ctx, updateMap, pl.Email)
+	if uErr != nil {
+		log.Println("Error updating user account:", err)
+		return "error", err
+	}
+	return "Email Verification successful", nil
 }
 
 func (s *UserServiceImpl) Login(loginDto dto.LoginDTO) (dto.LoginResponseDTO, error) {
