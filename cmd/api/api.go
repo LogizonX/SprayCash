@@ -4,6 +4,7 @@ import (
 	"github.com/LoginX/SprayDash/internal/controller"
 	repo "github.com/LoginX/SprayDash/internal/repository/impls"
 	service "github.com/LoginX/SprayDash/internal/service/impls"
+	"github.com/LoginX/SprayDash/internal/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -30,7 +31,10 @@ func (a *APIServer) Start() error {
 	userRepo := repo.NewUserRepositoryImpl(mongoDb)
 	partyRepo := repo.NewPartyRepoImpl(mongoDb)
 	// service
-	userService := service.NewUserServiceImpl(userRepo)
+	cacheService := utils.NewRedisCacheService()
+	mailer := utils.NewMailerService()
+	codeGenerator := utils.NewCodeGeneratorService()
+	userService := service.NewUserServiceImpl(userRepo, cacheService, mailer, codeGenerator)
 	partyService := service.NewPartyServiceImpl(partyRepo)
 	// controller
 	userController := controller.NewUserController(userService)

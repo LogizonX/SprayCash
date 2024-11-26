@@ -24,12 +24,18 @@ import (
 
 type UserServiceImpl struct {
 	// depends on
-	repo repository.UserRepository
+	repo          repository.UserRepository
+	cacheService  utils.CacheService
+	mailer        utils.Mailer
+	codeGenerator utils.CodeGenerator
 }
 
-func NewUserServiceImpl(repo repository.UserRepository) *UserServiceImpl {
+func NewUserServiceImpl(repo repository.UserRepository, cacheService utils.CacheService, mailer utils.Mailer, codeGenerator utils.CodeGenerator) *UserServiceImpl {
 	return &UserServiceImpl{
-		repo: repo,
+		repo:          repo,
+		cacheService:  cacheService,
+		mailer:        mailer,
+		codeGenerator: codeGenerator,
 	}
 }
 
@@ -84,13 +90,13 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 	// get the bank details in a goroutine
 	go s.generateVirtualAccount(user)
 	// send a welcome email
-	code, cErr := utils.GenerateAndCacheCode(newUser.Email)
+	code, cErr := utils.GenerateAndCacheCode(s.cacheService, s.codeGenerator, newUser.Email)
 	if cErr != nil {
 		log.Println("Error generating code: ", cErr)
 	} else {
 
 		// send email
-		go utils.SendMail(user.Email, "Welcome to SprayDash", user.Name, fmt.Sprintf("%d", code), "email_template")
+		go s.mailer.SendMail(user.Email, "Welcome to SprayDash", user.Name, fmt.Sprintf("%d", code), "email_template")
 	}
 
 	return "User registered successfully", nil
@@ -107,7 +113,7 @@ func (s *UserServiceImpl) VerifyUser(pl dto.VerifyUserDTO) (string, error) {
 		return "error", errors.New("user not found")
 	}
 	// get code
-	code, cErr := utils.GetCachedCode(pl.Email)
+	code, cErr := utils.GetCachedCode(s.cacheService, pl.Email)
 	if cErr != nil {
 		log.Println("Error getting cached code:", cErr)
 		return "error", cErr
@@ -278,7 +284,7 @@ func (s *UserServiceImpl) PayazaWebhook(pl *dto.Transaction) (string, error) {
 		// send a mail to the user
 		// TODO: change email template for this
 		message := "Your Wallet has been credited with " + strconv.FormatFloat(float64(responseBody.Data.AmountReceived), 'f', 2, 64)
-		go utils.SendMail(user.Email, "Fund Successful", user.Name, message, "fund_success_template")
+		go s.mailer.SendMail(user.Email, "Fund Successful", user.Name, message, "fund_success_template")
 		return "success", nil
 	}
 	return "failed", errors.New("transaction failed")
@@ -298,7 +304,7 @@ func (s *UserServiceImpl) DisburseFunds(msg model.MessageData, inviteCode string
 		log.Println("Error getting user by email:", err)
 		return "error", err
 	}
-	tranRef := utils.GenerateReferenceCode()
+	tranRef := s.codeGenerator.GenerateReferenceCode()
 	newWalletHistoryReceiver := model.NewWalletHistory(receiverUser.Email, float64(msg.Amount), receiverUser.WalletBalance, receiverUser.WalletBalance+float64(msg.Amount), tranRef)
 	// debit the sender account
 	newWalletHistorySender := model.NewWalletHistory(senderUser.Email, float64(msg.Amount), senderUser.WalletBalance, senderUser.WalletBalance-float64(msg.Amount), tranRef)
@@ -345,7 +351,7 @@ func (s *UserServiceImpl) PayazaTestFundAccount(pl *dto.TestFundDTO) (*dto.TestF
 			"application_version":              "1.0.0",
 			"request_class":                    "MerchantFundTestVirtualAccount",
 			"account_number":                   pl.AccountNumber,
-			"initiation_transaction_reference": utils.GenerateReferenceCode(),
+			"initiation_transaction_reference": s.codeGenerator.GenerateReferenceCode(),
 			"transaction_amount":               pl.Amount,
 			"currency":                         "NGN",
 			"source_account_number":            "4859693408",

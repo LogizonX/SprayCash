@@ -19,6 +19,11 @@ type Party struct {
 	Guests     map[string]*PartyGuest `bson:"guests" json:"guests"`
 }
 
+var codeGeneratorService = utils.NewCodeGeneratorService()
+
+// TODO: Guest total spent should be updated when a user makes a payment
+// TODO: Guest total received should updated
+
 type PartyConnPool struct {
 	mu     sync.RWMutex
 	Guests map[string]*PartyGuest
@@ -129,7 +134,7 @@ type Message struct {
 }
 
 func NewParty(name string, tag string, hostEmail string) *Party {
-	inviteCode := strings.ReplaceAll(name, " ", "-") + "-" + utils.GenerateInviteCode()
+	inviteCode := strings.ReplaceAll(name, " ", "-") + "-" + codeGeneratorService.GenerateInviteCode()
 	return &Party{
 		Name:       name,
 		Tag:        tag,
