@@ -19,6 +19,9 @@ type Party struct {
 	Guests     map[string]*PartyGuest `bson:"guests" json:"guests"`
 }
 
+// TODO: Guest total spent should be updated when a user makes a payment
+// TODO: Guest total received should updated
+
 type PartyConnPool struct {
 	mu     sync.RWMutex
 	Guests map[string]*PartyGuest
