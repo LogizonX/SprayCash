@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/LoginX/SprayDash/internal/model"
 	"github.com/LoginX/SprayDash/internal/service/dto"
@@ -15,8 +16,10 @@ import (
 func TestRegisterUser(t *testing.T) {
 	// dependencies setup
 	mockRepo := &MockUserRepository{}
-	userService := impls.NewUserServiceImpl(mockRepo)
-	mockUtils := &MockUtils{}
+	mockCache := &MockRedisCacheService{}
+	mockMailer := &mailerService{}
+	mockCodeGenerator := &codeGeneratorService{}
+	userService := impls.NewUserServiceImpl(mockRepo, mockCache, mockMailer, mockCodeGenerator)
 	// arrange
 	createUserDto := dto.CreateUserDTO{
 		Name:     "Test User",
@@ -31,7 +34,9 @@ func TestRegisterUser(t *testing.T) {
 		// expect
 		mockRepo.On("GetUserByEmail", mock.Anything, createUserDto.Email).Return(newUser, errors.New("user not found")).Once()
 		mockRepo.On("CreateUser", mock.Anything, mock.AnythingOfType("*model.User")).Return(newUser, nil)
-		mockUtils.On("GenerateAndCacheCode", createUserDto.Email).Return(1234, nil)
+		mockCache.On("Set", mock.Anything, createUserDto.Email, mock.AnythingOfType("int"), mock.AnythingOfType("time.Duration")).Return(1234, nil)
+		mockCodeGenerator.On("GenerateCode").Return(1234)
+		mockMailer.On("SendMail", createUserDto.Email, "Welcome to SprayDash", createUserDto.Name, "Your account has been created successfully.", "welcome_email").Return(nil)
 
 		// act
 		message, err := userService.Register(createUserDto)
@@ -48,8 +53,6 @@ func TestRegisterUser(t *testing.T) {
 type MockUserRepository struct {
 	mock.Mock
 }
-
-
 
 func (m *MockUserRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
 	args := m.Called(ctx, user)
@@ -91,11 +94,38 @@ func (m *MockUserRepository) UpdateUser(ctx context.Context, updateMap map[strin
 	return nil, nil
 }
 
-type MockUtils struct {
+type MockRedisCacheService struct {
 	mock.Mock
 }
 
-func (m *MockUtils) GenerateAndCacheCode(email string) (int, error) {
-	args := m.Called(email)
-	return args.Int(0), args.Error(1)
+func (m *MockRedisCacheService) Set(ctx context.Context, email string, code int, expiration time.Duration) error {
+	return nil
+}
+
+func (m *MockRedisCacheService) Get(ctx context.Context, email string) (int, error) {
+	return 0, nil
+}
+
+type mailerService struct {
+	mock.Mock
+}
+
+func (m *mailerService) SendMail(recipient string, subject string, username string, message string, template_name string) error {
+	return nil
+}
+
+type codeGeneratorService struct {
+	mock.Mock
+}
+
+func (c *codeGeneratorService) GenerateCode() int {
+	return 1234
+}
+
+func (c *codeGeneratorService) GenerateInviteCode() string {
+	return "1234"
+}
+
+func (c *codeGeneratorService) GenerateReferenceCode() string {
+	return "1234"
 }
