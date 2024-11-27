@@ -6,7 +6,7 @@ import (
 )
 
 type PartyService interface {
-	CreateParty(createPartyDto dto.CreatePartyDTO) (*model.Party, error)
+	CreateParty(createPartyDto dto.CreatePartyDTO) (map[string]interface{}, error)
 	GetParty(inviteCode string) (*model.Party, error)
 	JoinParty(inviteCode string, partyGuest *model.PartyGuest) (*model.Party, error)
 	LeaveParty(inviteCode string, guestId string) error

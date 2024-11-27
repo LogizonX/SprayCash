@@ -15,4 +15,5 @@ type UserService interface {
 	PayazaTestFundAccount(pl *dto.TestFundDTO) (*dto.TestFundAccountResponse, error)
 	DisburseFunds(msg model.MessageData, inviteCode string) (string, error)
 	VerifyUser(pl dto.VerifyUserDTO) (string, error)
+	ResendOTP(email string) (string, error)
 }

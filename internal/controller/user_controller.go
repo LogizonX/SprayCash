@@ -28,6 +28,7 @@ func (uc *UserController) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/users", middleware.AuthMiddleware(uc.userService), uc.FetchUserDetails)
 	rg.POST("/payaza/webhook", uc.PayazaWebhook)
 	rg.POST("/payaza/fund-test", uc.FundAccount)
+	rg.POST("/auth/resend-otp", uc.ResendOTP)
 }
 
 func (uc *UserController) Register(c *gin.Context) {
@@ -40,6 +41,7 @@ func (uc *UserController) Register(c *gin.Context) {
 		c.JSON(400, utils.Response(http.StatusBadRequest, nil, err.Error()))
 		return
 	}
+
 	// send to service
 	resp, rErr := uc.userService.Register(pl)
 	if rErr != nil {
@@ -139,6 +141,31 @@ func (uc *UserController) VerifyUser(c *gin.Context) {
 		log.Println("this is the error: ", rErr)
 		if rErr.Error() == "request timed out" {
 			c.JSON(408, utils.Response(http.StatusRequestTimeout, nil, rErr.Error()))
+			return
+		}
+		c.JSON(500, utils.Response(http.StatusInternalServerError, nil, rErr.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Response(http.StatusOK, nil, msg))
+}
+
+func (uc *UserController) ResendOTP(c *gin.Context) {
+	var pl dto.ResendOTPDTO
+
+	if err := c.ShouldBindJSON(&pl); err != nil {
+		log.Println(err)
+		c.JSON(400, utils.Response(http.StatusBadRequest, nil, err.Error()))
+		return
+	}
+	msg, rErr := uc.userService.ResendOTP(pl.Email)
+	if rErr != nil {
+		log.Println("this is the error: ", rErr)
+		if rErr.Error() == "request timed out" {
+			c.JSON(408, utils.Response(http.StatusRequestTimeout, nil, rErr.Error()))
+			return
+		}
+		if rErr.Error() == "user not found" {
+			c.JSON(404, utils.Response(http.StatusNotFound, nil, rErr.Error()))
 			return
 		}
 		c.JSON(500, utils.Response(http.StatusInternalServerError, nil, rErr.Error()))

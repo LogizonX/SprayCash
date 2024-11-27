@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/LoginX/SprayDash/config"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -136,6 +138,55 @@ func (cg *CodeGeneratorService) GenerateReferenceCode() string {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(b)
+}
+
+type AzureServiceImpl struct{}
+
+func NewAzureServiceImpl() *AzureServiceImpl {
+	return &AzureServiceImpl{}
+}
+
+func (as AzureServiceImpl) UploadFileToAzureBlob(file []byte, fileName string, containerName string) (string, error) {
+	accountName := config.GetEnv("AZURE_BLOB_ACCOUNT_NAME", "sainthaywon")
+	accountKey := config.GetEnv("AZURE_BLOB_ACCOUNT_KEY", "protected")
+	credential, err := azblob.NewSharedKeyCredential(accountName, accountKey)
+	if err != nil {
+		log.Println("Error creating shared key credential:", err)
+		return "", err
+	}
+	// create a blob service client
+	blobServiceClient, err := azblob.NewClientWithSharedKeyCredential(fmt.Sprintf("https://%s.blob.core.windows.net/", accountName), credential, nil)
+	if err != nil {
+		log.Println("Error creating blob service client:", err)
+		return "", err
+	}
+	loadedFile, fErr := os.OpenFile(fileName, os.O_RDONLY, 0)
+	if fErr != nil {
+		log.Println("Error reading file:", fErr)
+		return "", err
+	}
+
+	contentType := "image/png"
+
+	headers := blob.HTTPHeaders{
+		BlobContentType: &contentType,
+	}
+
+	// create a container client
+	containerClient := blobServiceClient.ServiceClient().NewContainerClient(containerName)
+	// create a blob client
+	blobClient := containerClient.NewBlockBlobClient(fileName)
+	// upload the file to the blob
+	_, err = blobClient.UploadFile(context.Background(), loadedFile, &azblob.UploadFileOptions{
+		HTTPHeaders: &headers,
+	})
+	blobClient.SetHTTPHeaders(context.Background(), headers, nil)
+	if err != nil {
+		log.Println("Error uploading file to blob:", err)
+		return "", err
+	}
+
+	return blobClient.URL(), nil
 }
 
 func GenerateAndCacheCode(cacheService CacheService, codeGenerator CodeGenerator, email string) (int, error) {

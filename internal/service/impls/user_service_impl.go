@@ -103,6 +103,26 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 
 }
 
+func (s *UserServiceImpl) ResendOTP(email string) (string, error) {
+	// check if the user exists
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		log.Println("Error getting user by email:", err)
+		return "", errors.New("user not found")
+	}
+	// generate and cache the code
+	code, cErr := utils.GenerateAndCacheCode(s.cacheService, s.codeGenerator, email)
+	if cErr != nil {
+		log.Println("Error generating code: ", cErr)
+		return "", cErr
+	}
+	// send email
+	go s.mailer.SendMail(email, "Welcome to SprayDash", "", fmt.Sprintf("%d", code), "email_template")
+	return "OTP sent successfully", nil
+}
+
 func (s *UserServiceImpl) VerifyUser(pl dto.VerifyUserDTO) (string, error) {
 	// get the user by the email
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
