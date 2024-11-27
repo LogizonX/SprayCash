@@ -10,11 +10,9 @@ type CacheService interface {
 	Get(ctx context.Context, email string) (int, error)
 }
 
-
 type Mailer interface {
 	SendMail(to, subject, userName, message, templateName string) error
 }
-
 
 type CodeGenerator interface {
 	GenerateCode() int
@@ -22,5 +20,6 @@ type CodeGenerator interface {
 	GenerateReferenceCode() string
 }
 
-
-
+type AzureService interface {
+	UploadFileToAzureBlob(file []byte, fileName string, containerName string) (string, error)
+}

@@ -35,7 +35,8 @@ func (a *APIServer) Start() error {
 	mailer := utils.NewMailerService()
 	codeGenerator := utils.NewCodeGeneratorService()
 	userService := service.NewUserServiceImpl(userRepo, cacheService, mailer, codeGenerator)
-	partyService := service.NewPartyServiceImpl(partyRepo)
+	azureService := utils.NewAzureServiceImpl()
+	partyService := service.NewPartyServiceImpl(partyRepo, azureService)
 	// controller
 	userController := controller.NewUserController(userService)
 	partyController := controller.NewPartyController(partyService, userService)
