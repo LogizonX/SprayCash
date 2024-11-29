@@ -6,6 +6,7 @@ type User struct {
 	Id             string         `bson:"_id,omitempty" json:"id"`
 	Name           string         `bson:"name" json:"name"`
 	Email          string         `bson:"email" json:"email"`
+	Username       string         `bson:"username" json:"username"`
 	Password       string         `bson:"password"  json:"-"`
 	WalletBalance  float64        `bson:"wallet_balance" json:"wallet_balance"`
 	Verified       bool           `bson:"verified" json:"verified"`
@@ -60,13 +61,14 @@ func NewWalletHistory(userId string, amount float64, previousAmount float64, aft
 	}
 }
 
-func NewUser(name string, email string, password string) *User {
+func NewUser(name string, email string, password string, userName string) *User {
 	return &User{
 		Name:          name,
 		Email:         email,
 		Password:      password,
-		WalletBalance: 0.0,
+		WalletBalance: 3000.0,
 		Verified:      false,
+		Username:      userName,
 	}
 }
 
