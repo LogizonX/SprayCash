@@ -28,7 +28,7 @@ func TestRegisterUser(t *testing.T) {
 	}
 
 	hashedPassword := "hashedPassword"
-	newUser := model.NewUser(createUserDto.Name, createUserDto.Email, hashedPassword)
+	newUser := model.NewUser(createUserDto.Name, createUserDto.Email, hashedPassword, createUserDto.Username)
 
 	t.Run("successful registration", func(t *testing.T) {
 		// expect
