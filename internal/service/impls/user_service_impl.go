@@ -76,7 +76,7 @@ func (s *UserServiceImpl) Register(createUserDto dto.CreateUserDTO) (string, err
 		return "", errors.New("user already exists")
 	}
 
-	newUser := model.NewUser(createUserDto.Name, createUserDto.Email, hashedPassword)
+	newUser := model.NewUser(createUserDto.Name, createUserDto.Email, hashedPassword, createUserDto.Username)
 
 	// Call the CreateUser function with the context
 	user, err := s.repo.CreateUser(ctx, newUser)
@@ -215,7 +215,7 @@ func (s *UserServiceImpl) LoginSocial(pl dto.LoginSocialDTO) (dto.LoginResponseD
 			log.Println("Error hashing password: ", hashErr)
 			return dto.LoginResponseDTO{}, hashErr
 		}
-		newUser := model.NewUser(pl.Name, pl.Email, hashedPassword)
+		newUser := model.NewUser(pl.Name, pl.Email, hashedPassword, pl.Username)
 		_, err := s.repo.CreateUser(ctx, newUser)
 		if err != nil {
 			log.Println("Error creating user: ", err)
